@@ -87,3 +87,35 @@ Ejecuta la API una vez y luego desactiva la creación inicial:
 ```bash
 dotnet user-secrets set "BootstrapSuperAdmin:Enabled" "false" --project backend/src/NexoFleet.Api
 ```
+
+## Documentación de la API
+
+En el entorno `Development`, Swagger UI está disponible en:
+
+```text
+https://localhost:7034/swagger
+```
+
+El documento OpenAPI puede consultarse en:
+
+```text
+https://localhost:7034/swagger/v1/swagger.json
+```
+
+Para probar el inicio de sesión desde Swagger:
+
+1. Ejecuta `GET /api/v1/auth/csrf`.
+2. Copia el valor `token` de la respuesta.
+3. Ejecuta `POST /api/v1/auth/login` y envíalo en el encabezado `X-XSRF-TOKEN`.
+
+## Patrón Result
+
+Los casos de uso devuelven `Result` o `Result<T>` y no utilizan excepciones para representar errores esperados. Cada error posee un código estable, descripción y tipo. La API transforma esos tipos en respuestas HTTP uniformes mediante `ProblemDetails`:
+
+- `Validation` → 400.
+- `Unauthorized` → 401.
+- `Forbidden` → 403.
+- `NotFound` → 404.
+- `Conflict` → 409.
+- `Locked` → 423.
+- `Failure` → 500.

@@ -50,6 +50,22 @@ public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Pr
             "/api/v1/auth/login",
             new { Email = "user@nexofleet.test", Password = "password" });
 
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(
+            "Security.InvalidAntiforgeryToken",
+            problem.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task SwaggerShouldExposeTheApiDocument()
+    {
+        var response = await _client.GetAsync("/swagger/v1/swagger.json");
+        var document = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("NexoFleet API", document.GetProperty("info").GetProperty("title").GetString());
+        Assert.True(document.GetProperty("paths").TryGetProperty("/api/v1/auth/login", out _));
     }
 }

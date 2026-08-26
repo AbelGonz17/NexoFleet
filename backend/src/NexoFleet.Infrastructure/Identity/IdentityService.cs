@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NexoFleet.Application.Abstractions.Authentication;
 using NexoFleet.Application.Authentication;
+using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Infrastructure.Identity;
 
@@ -9,7 +10,7 @@ internal sealed class IdentityService(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager) : IIdentityService
 {
-    public async Task<LoginResult> PasswordSignInAsync(
+    public async Task<Result<AuthenticatedUser>> PasswordSignInAsync(
         string email,
         string password,
         CancellationToken cancellationToken = default)
@@ -20,12 +21,12 @@ internal sealed class IdentityService(
 
         if (user is null)
         {
-            return LoginResult.Failed(LoginStatus.InvalidCredentials);
+            return Result<AuthenticatedUser>.Failure(AuthErrors.InvalidCredentials);
         }
 
         if (!user.IsActive)
         {
-            return LoginResult.Failed(LoginStatus.Inactive);
+            return Result<AuthenticatedUser>.Failure(AuthErrors.Inactive);
         }
 
         var signInResult = await signInManager.PasswordSignInAsync(
@@ -36,15 +37,15 @@ internal sealed class IdentityService(
 
         if (signInResult.IsLockedOut)
         {
-            return LoginResult.Failed(LoginStatus.LockedOut);
+            return Result<AuthenticatedUser>.Failure(AuthErrors.LockedOut);
         }
 
         if (!signInResult.Succeeded)
         {
-            return LoginResult.Failed(LoginStatus.InvalidCredentials);
+            return Result<AuthenticatedUser>.Failure(AuthErrors.InvalidCredentials);
         }
 
-        return LoginResult.Success(await MapUserAsync(user));
+        return Result<AuthenticatedUser>.Success(await MapUserAsync(user));
     }
 
     public async Task<AuthenticatedUser?> GetUserAsync(

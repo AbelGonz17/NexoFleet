@@ -1,11 +1,12 @@
 using NexoFleet.Application;
+using NexoFleet.Api.Extensions;
 using NexoFleet.Infrastructure;
 using NexoFleet.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddApiDocumentation();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
 builder.Services.AddAntiforgery(options =>
@@ -37,7 +38,7 @@ await app.Services.SeedIdentityAsync(app.Configuration);
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseApiDocumentation();
     app.UseDeveloperExceptionPage();
 }
 else

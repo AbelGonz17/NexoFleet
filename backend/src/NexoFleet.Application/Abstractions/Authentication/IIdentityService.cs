@@ -1,10 +1,11 @@
 using NexoFleet.Application.Authentication;
+using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Application.Abstractions.Authentication;
 
 public interface IIdentityService
 {
-    Task<LoginResult> PasswordSignInAsync(
+    Task<Result<AuthenticatedUser>> PasswordSignInAsync(
         string email,
         string password,
         CancellationToken cancellationToken = default);

@@ -1,6 +1,7 @@
 using FluentValidation;
 using NexoFleet.Application.Abstractions.Authentication;
 using NexoFleet.Application.Abstractions.Context;
+using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Application.Authentication;
 
@@ -9,11 +10,21 @@ public sealed class AuthService(
     ICurrentUser currentUser,
     IValidator<LoginRequest> loginValidator)
 {
-    public async Task<LoginResult> LoginAsync(
+    public async Task<Result<AuthenticatedUser>> LoginAsync(
         LoginRequest request,
         CancellationToken cancellationToken = default)
     {
-        await loginValidator.ValidateAndThrowAsync(request, cancellationToken);
+        var validationResult = await loginValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var errors = validationResult.Errors
+                .GroupBy(error => error.PropertyName)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(error => error.ErrorMessage).Distinct().ToArray());
+
+            return Result<AuthenticatedUser>.Failure(new ValidationError(errors));
+        }
 
         return await identityService.PasswordSignInAsync(
             request.Email.Trim(),
@@ -21,13 +32,23 @@ public sealed class AuthService(
             cancellationToken);
     }
 
-    public Task<AuthenticatedUser?> GetCurrentUserAsync(
+    public async Task<Result<AuthenticatedUser>> GetCurrentUserAsync(
         CancellationToken cancellationToken = default)
     {
-        return currentUser.UserId is { } userId
-            ? identityService.GetUserAsync(userId, cancellationToken)
-            : Task.FromResult<AuthenticatedUser?>(null);
+        if (currentUser.UserId is not { } userId)
+        {
+            return Result<AuthenticatedUser>.Failure(AuthErrors.SessionNotFound);
+        }
+
+        var user = await identityService.GetUserAsync(userId, cancellationToken);
+        return user is null
+            ? Result<AuthenticatedUser>.Failure(AuthErrors.SessionNotFound)
+            : Result<AuthenticatedUser>.Success(user);
     }
 
-    public Task LogoutAsync() => identityService.SignOutAsync();
+    public async Task<Result> LogoutAsync()
+    {
+        await identityService.SignOutAsync();
+        return Result.Success();
+    }
 }

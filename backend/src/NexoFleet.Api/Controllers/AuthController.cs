@@ -1,8 +1,10 @@
-using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
+using NexoFleet.Api.Common;
+using NexoFleet.Api.Extensions;
 using NexoFleet.Application.Authentication;
+using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Api.Controllers;
 
@@ -12,6 +14,7 @@ public sealed class AuthController(
     AuthService authService,
     IAntiforgery antiforgery) : ControllerBase
 {
+    /// <summary>Genera el token CSRF necesario para las operaciones de autenticación.</summary>
     [AllowAnonymous]
     [HttpGet("csrf")]
     [ProducesResponseType<CsrfTokenResponse>(StatusCodes.Status200OK)]
@@ -21,6 +24,10 @@ public sealed class AuthController(
         return Ok(new CsrfTokenResponse(tokens.RequestToken ?? string.Empty));
     }
 
+    /// <summary>Inicia una sesión usando correo y contraseña.</summary>
+    /// <param name="request">Credenciales del usuario.</param>
+    /// <param name="antiforgeryToken">Token obtenido desde GET /api/v1/auth/csrf.</param>
+    /// <param name="cancellationToken">Token de cancelación de la solicitud.</param>
     [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType<AuthenticatedUser>(StatusCodes.Status200OK)]
@@ -28,41 +35,23 @@ public sealed class AuthController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status423Locked)]
     public async Task<ActionResult<AuthenticatedUser>> Login(
-        LoginRequest request,
+        [FromBody] LoginRequest request,
+        [FromHeader(Name = "X-XSRF-TOKEN")] string? antiforgeryToken,
         CancellationToken cancellationToken)
     {
-        if (!await HasValidAntiforgeryTokenAsync())
+        _ = antiforgeryToken;
+        var antiforgeryResult = await ValidateAntiforgeryTokenAsync();
+        if (antiforgeryResult.IsFailure)
         {
-            return InvalidAntiforgeryToken();
+            return this.ToActionResult<AuthenticatedUser>(
+                Result<AuthenticatedUser>.Failure(antiforgeryResult.Error));
         }
 
-        LoginResult result;
-
-        try
-        {
-            result = await authService.LoginAsync(request, cancellationToken);
-        }
-        catch (ValidationException exception)
-        {
-            foreach (var error in exception.Errors)
-            {
-                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-            }
-
-            return ValidationProblem(ModelState);
-        }
-
-        return result.Status switch
-        {
-            LoginStatus.Success => Ok(result.User),
-            LoginStatus.LockedOut => Problem(
-                statusCode: StatusCodes.Status423Locked,
-                title: "Cuenta bloqueada temporalmente"),
-            LoginStatus.Inactive => UnauthorizedProblem("La cuenta está inactiva."),
-            _ => UnauthorizedProblem("El correo o la contraseña no son válidos.")
-        };
+        var result = await authService.LoginAsync(request, cancellationToken);
+        return this.ToActionResult(result);
     }
 
+    /// <summary>Devuelve el usuario asociado con la sesión activa.</summary>
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType<AuthenticatedUser>(StatusCodes.Status200OK)]
@@ -70,45 +59,40 @@ public sealed class AuthController(
     public async Task<ActionResult<AuthenticatedUser>> Me(CancellationToken cancellationToken)
     {
         var user = await authService.GetCurrentUserAsync(cancellationToken);
-        return user is null ? Unauthorized() : Ok(user);
+        return this.ToActionResult(user);
     }
 
+    /// <summary>Cierra la sesión activa.</summary>
+    /// <param name="antiforgeryToken">Token obtenido desde GET /api/v1/auth/csrf.</param>
     [Authorize]
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> Logout()
+    public async Task<IActionResult> Logout(
+        [FromHeader(Name = "X-XSRF-TOKEN")] string? antiforgeryToken)
     {
-        if (!await HasValidAntiforgeryTokenAsync())
+        _ = antiforgeryToken;
+        var antiforgeryResult = await ValidateAntiforgeryTokenAsync();
+        if (antiforgeryResult.IsFailure)
         {
-            return InvalidAntiforgeryToken();
+            return this.ToNoContentResult(antiforgeryResult);
         }
 
-        await authService.LogoutAsync();
-        return NoContent();
+        var result = await authService.LogoutAsync();
+        return this.ToNoContentResult(result);
     }
 
-    private async Task<bool> HasValidAntiforgeryTokenAsync()
+    private async Task<Result> ValidateAntiforgeryTokenAsync()
     {
         try
         {
             await antiforgery.ValidateRequestAsync(HttpContext);
-            return true;
+            return Result.Success();
         }
         catch (AntiforgeryValidationException)
         {
-            return false;
+            return Result.Failure(ApiErrors.InvalidAntiforgeryToken);
         }
     }
-
-    private ObjectResult InvalidAntiforgeryToken() => Problem(
-        statusCode: StatusCodes.Status400BadRequest,
-        title: "Solicitud no válida",
-        detail: "El token de seguridad no es válido o ha expirado.");
-
-    private ObjectResult UnauthorizedProblem(string detail) => Problem(
-        statusCode: StatusCodes.Status401Unauthorized,
-        title: "No fue posible iniciar sesión",
-        detail: detail);
 }
 
 public sealed record CsrfTokenResponse(string Token);

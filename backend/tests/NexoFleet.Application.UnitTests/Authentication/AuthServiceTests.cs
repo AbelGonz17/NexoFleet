@@ -1,7 +1,7 @@
-using FluentValidation;
 using NexoFleet.Application.Abstractions.Authentication;
 using NexoFleet.Application.Abstractions.Context;
 using NexoFleet.Application.Authentication;
+using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Application.UnitTests.Authentication;
 
@@ -20,15 +20,15 @@ public sealed class AuthServiceTests
     {
         var identity = new FakeIdentityService
         {
-            LoginResult = LoginResult.Success(User)
+            SignInResult = Result<AuthenticatedUser>.Success(User)
         };
         var service = CreateService(identity);
 
         var result = await service.LoginAsync(
             new LoginRequest(" admin@nexofleet.test ", "ValidPassword123!"));
 
-        Assert.Equal(LoginStatus.Success, result.Status);
-        Assert.Equal(User, result.User);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(User, result.Value);
         Assert.Equal("admin@nexofleet.test", identity.ReceivedEmail);
     }
 
@@ -37,8 +37,10 @@ public sealed class AuthServiceTests
     {
         var service = CreateService(new FakeIdentityService());
 
-        await Assert.ThrowsAsync<ValidationException>(() =>
-            service.LoginAsync(new LoginRequest("not-an-email", "password")));
+        var result = await service.LoginAsync(new LoginRequest("not-an-email", "password"));
+
+        Assert.True(result.IsFailure);
+        Assert.IsType<ValidationError>(result.Error);
     }
 
     [Fact]
@@ -49,7 +51,8 @@ public sealed class AuthServiceTests
 
         var result = await service.GetCurrentUserAsync();
 
-        Assert.Equal(User, result);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(User, result.Value);
         Assert.Equal(User.Id, identity.ReceivedUserId);
     }
 
@@ -74,7 +77,8 @@ public sealed class AuthServiceTests
 
     private sealed class FakeIdentityService : IIdentityService
     {
-        public LoginResult LoginResult { get; init; } = LoginResult.Failed(LoginStatus.InvalidCredentials);
+        public Result<AuthenticatedUser> SignInResult { get; init; } =
+            Result<AuthenticatedUser>.Failure(AuthErrors.InvalidCredentials);
 
         public AuthenticatedUser? User { get; init; }
 
@@ -82,13 +86,13 @@ public sealed class AuthServiceTests
 
         public Guid? ReceivedUserId { get; private set; }
 
-        public Task<LoginResult> PasswordSignInAsync(
+        public Task<Result<AuthenticatedUser>> PasswordSignInAsync(
             string email,
             string password,
             CancellationToken cancellationToken = default)
         {
             ReceivedEmail = email;
-            return Task.FromResult(LoginResult);
+            return Task.FromResult(SignInResult);
         }
 
         public Task<AuthenticatedUser?> GetUserAsync(
