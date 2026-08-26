@@ -11,7 +11,7 @@ public static class ResultExtensions
     {
         return result.IsSuccess
             ? controller.Ok(result.Value)
-            : CreateErrorResult(controller, result.Error);
+            : controller.HttpContext.ToErrorResult(result.Error);
     }
 
     public static IActionResult ToNoContentResult(
@@ -20,10 +20,10 @@ public static class ResultExtensions
     {
         return result.IsSuccess
             ? controller.NoContent()
-            : CreateErrorResult(controller, result.Error);
+            : controller.HttpContext.ToErrorResult(result.Error);
     }
 
-    private static ObjectResult CreateErrorResult(ControllerBase controller, Error error)
+    public static ObjectResult ToErrorResult(this HttpContext httpContext, Error error)
     {
         if (error is ValidationError validationError)
         {
@@ -35,7 +35,7 @@ public static class ResultExtensions
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
             };
 
-            AddExtensions(controller, validationProblem, validationError.Code);
+            AddExtensions(httpContext, validationProblem, validationError.Code);
             return new BadRequestObjectResult(validationProblem);
         }
 
@@ -57,17 +57,17 @@ public static class ResultExtensions
             Detail = error.Description
         };
 
-        AddExtensions(controller, problem, error.Code);
+        AddExtensions(httpContext, problem, error.Code);
         return new ObjectResult(problem) { StatusCode = statusCode };
     }
 
     private static void AddExtensions(
-        ControllerBase controller,
+        HttpContext httpContext,
         ProblemDetails problem,
         string errorCode)
     {
         problem.Extensions["code"] = errorCode;
-        problem.Extensions["traceId"] = controller.HttpContext.TraceIdentifier;
+        problem.Extensions["traceId"] = httpContext.TraceIdentifier;
     }
 
     private static string GetTitle(ErrorType type) => type switch

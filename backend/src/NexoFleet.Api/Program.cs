@@ -1,5 +1,6 @@
 using NexoFleet.Application;
 using NexoFleet.Api.Extensions;
+using NexoFleet.Api.Services;
 using NexoFleet.Infrastructure;
 using NexoFleet.Infrastructure.Identity;
 
@@ -17,6 +18,7 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
+builder.Services.AddScoped<AntiforgeryTokenService>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
