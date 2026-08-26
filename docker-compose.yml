@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nexofleet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexofleet}
+      POSTGRES_USER: ${POSTGRES_USER:-nexofleet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - nexofleet-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nexofleet} -d ${POSTGRES_DB:-nexofleet}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nexofleet-postgres-data:
+
