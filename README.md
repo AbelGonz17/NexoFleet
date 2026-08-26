@@ -32,12 +32,27 @@ NexoFleet.sln
 
 ## Desarrollo local
 
-1. Copiar `.env.example` a `.env` y ajustar las credenciales locales de PostgreSQL.
-2. Iniciar PostgreSQL:
+1. Copiar `.env.example` a `.env` y ajustar las credenciales locales de PostgreSQL y pgAdmin.
+2. Iniciar PostgreSQL y pgAdmin:
 
    ```bash
-   docker compose up -d postgres
+   docker compose up -d
    ```
+
+   pgAdmin estará disponible en `http://localhost:5050`. Inicia sesión con
+   `PGADMIN_DEFAULT_EMAIL` y `PGADMIN_DEFAULT_PASSWORD`, definidos en tu archivo
+   `.env`.
+
+   Para registrar PostgreSQL dentro de pgAdmin utiliza:
+
+   - Host: `postgres`.
+   - Puerto: `5432`.
+   - Base de datos de mantenimiento: el valor de `POSTGRES_DB`.
+   - Usuario: el valor de `POSTGRES_USER`.
+   - Contraseña: el valor de `POSTGRES_PASSWORD`.
+
+   Ambos contenedores comparten la red Docker `nexofleet-network` y conservan
+   sus datos mediante volúmenes independientes.
 
 3. Restaurar y ejecutar el backend:
 
