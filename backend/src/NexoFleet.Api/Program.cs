@@ -1,5 +1,6 @@
 using NexoFleet.Application;
 using NexoFleet.Infrastructure;
+using NexoFleet.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,14 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "NexoFleet.Xsrf";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -24,12 +33,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+await app.Services.SeedIdentityAsync(app.Configuration);
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler();
 }
 
-app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();

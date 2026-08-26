@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+import { useAuthStore } from '../../modules/auth/authStore'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+async function logout() {
+  await authStore.logout()
+  await router.replace('/login')
+}
 </script>
 
 <template>
@@ -12,7 +21,13 @@ import { RouterLink } from 'vue-router'
       </nav>
     </aside>
     <main>
-      <header class="topbar">Panel del SuperAdmin</header>
+      <header class="topbar">
+        <span>Panel del SuperAdmin</span>
+        <div class="session">
+          <span>{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</span>
+          <button type="button" @click="logout">Cerrar sesión</button>
+        </div>
+      </header>
       <div class="content"><slot /></div>
     </main>
   </div>
@@ -25,7 +40,9 @@ import { RouterLink } from 'vue-router'
 nav { display: grid; gap: 6px; }
 nav a { padding: 10px 12px; border-radius: 8px; color: #657887; text-decoration: none; }
 nav a.router-link-active { background: #e1f1ef; color: #183247; }
-.topbar { min-height: 68px; display: flex; align-items: center; padding: 0 24px; background: #ffffff; border-bottom: 1px solid #d5dfe6; }
+.topbar { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 24px; background: #ffffff; border-bottom: 1px solid #d5dfe6; }
+.session { display: flex; align-items: center; gap: 14px; }
+.session button { border: 0; background: transparent; color: #176f6a; cursor: pointer; font: inherit; }
 .content { padding: 24px; }
 @media (max-width: 700px) {
   .shell { grid-template-columns: 1fr; }
@@ -33,4 +50,3 @@ nav a.router-link-active { background: #e1f1ef; color: #183247; }
   nav { grid-template-columns: 1fr 1fr; }
 }
 </style>
-

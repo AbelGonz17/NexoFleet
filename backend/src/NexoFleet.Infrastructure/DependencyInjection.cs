@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NexoFleet.Application.Abstractions.Persistence;
+using NexoFleet.Application.Abstractions.Authentication;
+using NexoFleet.Application.Abstractions.Context;
 using NexoFleet.Application.Abstractions.Time;
 using NexoFleet.Infrastructure.Identity;
 using NexoFleet.Infrastructure.Persistence;
@@ -30,11 +32,42 @@ public static class DependencyInjection
                 options.Lockout.MaxFailedAccessAttempts = 5;
             })
             .AddRoles<IdentityRole<Guid>>()
+            .AddSignInManager()
+            .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>()
             .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        services
+            .AddAuthentication(IdentityConstants.ApplicationScheme)
+            .AddIdentityCookies();
+
+        services.ConfigureApplicationCookie(options =>
+        {
+            options.Cookie.Name = "NexoFleet.Auth";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+            options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = true;
+            options.Events.OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            };
+        });
+
+        services.AddAuthorization();
+        services.AddHttpContextAccessor();
+        services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<ICurrentTenant, CurrentTenant>();
 
         services.AddSingleton<IClock, SystemClock>();
 
         return services;
     }
 }
-
