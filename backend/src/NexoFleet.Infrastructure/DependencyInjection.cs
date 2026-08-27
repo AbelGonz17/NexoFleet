@@ -9,6 +9,8 @@ using NexoFleet.Application.Abstractions.Time;
 using NexoFleet.Infrastructure.Identity;
 using NexoFleet.Infrastructure.Persistence;
 using NexoFleet.Infrastructure.Time;
+using NexoFleet.Domain.Companies;
+using NexoFleet.Infrastructure.Persistence.Repositories;
 
 namespace NexoFleet.Infrastructure;
 
@@ -23,6 +25,7 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
 
         services
             .AddIdentityCore<ApplicationUser>(options =>
