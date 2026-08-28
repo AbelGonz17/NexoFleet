@@ -7,8 +7,6 @@ public sealed class Route : AggregateRoot
 {
     public const int RouteCodeMaxLength = 50;
     public const int NameMaxLength = 200;
-    public const int OriginMaxLength = 300;
-    public const int DestinationMaxLength = 300;
     public const int InstructionsMaxLength = 1000;
     public const int CurrencyLength = 3;
 
@@ -20,8 +18,8 @@ public sealed class Route : AggregateRoot
         Guid? clientId,
         string routeCode,
         string name,
-        string origin,
-        string destination,
+        RouteLocation origin,
+        RouteLocation destination,
         string? instructions,
         int? estimatedDurationMinutes,
         decimal? referenceAmount,
@@ -54,9 +52,9 @@ public sealed class Route : AggregateRoot
 
     public string Name { get; private set; } = string.Empty;
 
-    public string Origin { get; private set; } = string.Empty;
+    public RouteLocation Origin { get; private set; } = null!;
 
-    public string Destination { get; private set; } = string.Empty;
+    public RouteLocation Destination { get; private set; } = null!;
 
     public string? Instructions { get; private set; }
 
@@ -80,8 +78,8 @@ public sealed class Route : AggregateRoot
         Guid? clientId,
         string routeCode,
         string name,
-        string origin,
-        string destination,
+        RouteLocation origin,
+        RouteLocation destination,
         string? instructions,
         int? estimatedDurationMinutes,
         decimal? referenceAmount,
@@ -112,8 +110,8 @@ public sealed class Route : AggregateRoot
             clientId,
             NormalizeIdentifier(routeCode),
             Normalize(name),
-            Normalize(origin),
-            Normalize(destination),
+            origin,
+            destination,
             NormalizeOptional(instructions),
             estimatedDurationMinutes,
             referenceAmount,
@@ -132,8 +130,8 @@ public sealed class Route : AggregateRoot
         Guid? clientId,
         string routeCode,
         string name,
-        string origin,
-        string destination,
+        RouteLocation origin,
+        RouteLocation destination,
         string? instructions,
         int? estimatedDurationMinutes,
         decimal? referenceAmount,
@@ -160,16 +158,14 @@ public sealed class Route : AggregateRoot
 
         var normalizedRouteCode = NormalizeIdentifier(routeCode);
         var normalizedName = Normalize(name);
-        var normalizedOrigin = Normalize(origin);
-        var normalizedDestination = Normalize(destination);
         var normalizedInstructions = NormalizeOptional(instructions);
         var normalizedCurrency = NormalizeCurrency(referenceCurrency);
 
         if (ClientId == clientId &&
             RouteCode == normalizedRouteCode &&
             Name == normalizedName &&
-            Origin == normalizedOrigin &&
-            Destination == normalizedDestination &&
+            Origin == origin &&
+            Destination == destination &&
             Instructions == normalizedInstructions &&
             EstimatedDurationMinutes == estimatedDurationMinutes &&
             ReferenceAmount == referenceAmount &&
@@ -181,8 +177,8 @@ public sealed class Route : AggregateRoot
         ClientId = clientId;
         RouteCode = normalizedRouteCode;
         Name = normalizedName;
-        Origin = normalizedOrigin;
-        Destination = normalizedDestination;
+        Origin = origin;
+        Destination = destination;
         Instructions = normalizedInstructions;
         EstimatedDurationMinutes = estimatedDurationMinutes;
         ReferenceAmount = referenceAmount;
@@ -194,11 +190,11 @@ public sealed class Route : AggregateRoot
 
     public Result AddStop(
         Guid stopId,
-        string address,
+        RouteLocation location,
         string? instructions,
         DateTimeOffset updatedAtUtc)
     {
-        var validationResult = ValidateStop(stopId, address, instructions);
+        var validationResult = ValidateStop(stopId, location, instructions);
         if (validationResult.IsFailure)
         {
             return validationResult;
@@ -213,7 +209,7 @@ public sealed class Route : AggregateRoot
             stopId,
             Id,
             _stops.Count + 1,
-            Normalize(address),
+            location,
             NormalizeOptional(instructions)));
         UpdatedAtUtc = updatedAtUtc;
 
@@ -222,11 +218,11 @@ public sealed class Route : AggregateRoot
 
     public Result UpdateStop(
         Guid stopId,
-        string address,
+        RouteLocation location,
         string? instructions,
         DateTimeOffset updatedAtUtc)
     {
-        var validationResult = ValidateStop(stopId, address, instructions);
+        var validationResult = ValidateStop(stopId, location, instructions);
         if (validationResult.IsFailure)
         {
             return validationResult;
@@ -238,14 +234,13 @@ public sealed class Route : AggregateRoot
             return Result.Failure(RouteErrors.StopNotFound);
         }
 
-        var normalizedAddress = Normalize(address);
         var normalizedInstructions = NormalizeOptional(instructions);
-        if (stop.Address == normalizedAddress && stop.Instructions == normalizedInstructions)
+        if (stop.Location == location && stop.Instructions == normalizedInstructions)
         {
             return Result.Success();
         }
 
-        stop.Update(normalizedAddress, normalizedInstructions);
+        stop.Update(location, normalizedInstructions);
         UpdatedAtUtc = updatedAtUtc;
         return Result.Success();
     }
@@ -324,8 +319,8 @@ public sealed class Route : AggregateRoot
         Guid? clientId,
         string routeCode,
         string name,
-        string origin,
-        string destination,
+        RouteLocation? origin,
+        RouteLocation? destination,
         string? instructions,
         int? estimatedDurationMinutes,
         decimal? referenceAmount,
@@ -338,10 +333,8 @@ public sealed class Route : AggregateRoot
         if (routeCode.Trim().Length > RouteCodeMaxLength) return Result.Failure(RouteErrors.RouteCodeTooLong);
         if (string.IsNullOrWhiteSpace(name)) return Result.Failure(RouteErrors.NameRequired);
         if (name.Trim().Length > NameMaxLength) return Result.Failure(RouteErrors.NameTooLong);
-        if (string.IsNullOrWhiteSpace(origin)) return Result.Failure(RouteErrors.OriginRequired);
-        if (origin.Trim().Length > OriginMaxLength) return Result.Failure(RouteErrors.OriginTooLong);
-        if (string.IsNullOrWhiteSpace(destination)) return Result.Failure(RouteErrors.DestinationRequired);
-        if (destination.Trim().Length > DestinationMaxLength) return Result.Failure(RouteErrors.DestinationTooLong);
+        if (origin is null) return Result.Failure(RouteErrors.OriginRequired);
+        if (destination is null) return Result.Failure(RouteErrors.DestinationRequired);
         if (instructions?.Trim().Length > InstructionsMaxLength) return Result.Failure(RouteErrors.InstructionsTooLong);
         if (estimatedDurationMinutes <= 0) return Result.Failure(RouteErrors.InvalidEstimatedDuration);
         if (referenceAmount < 0) return Result.Failure(RouteErrors.InvalidReferenceAmount);
@@ -355,11 +348,13 @@ public sealed class Route : AggregateRoot
         return Result.Success();
     }
 
-    private static Result ValidateStop(Guid stopId, string address, string? instructions)
+    private static Result ValidateStop(
+        Guid stopId,
+        RouteLocation? location,
+        string? instructions)
     {
         if (stopId == Guid.Empty) return Result.Failure(RouteErrors.InvalidStopId);
-        if (string.IsNullOrWhiteSpace(address)) return Result.Failure(RouteErrors.StopAddressRequired);
-        if (address.Trim().Length > RouteStop.AddressMaxLength) return Result.Failure(RouteErrors.StopAddressTooLong);
+        if (location is null) return Result.Failure(RouteErrors.StopLocationRequired);
         if (instructions?.Trim().Length > RouteStop.InstructionsMaxLength) return Result.Failure(RouteErrors.StopInstructionsTooLong);
 
         return Result.Success();

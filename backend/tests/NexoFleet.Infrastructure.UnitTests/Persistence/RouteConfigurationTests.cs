@@ -36,6 +36,29 @@ public sealed class RouteConfigurationTests
             typeof(string),
             routeEntity.FindProperty(nameof(Route.Status))?.GetProviderClrType());
 
+        var routeTable = StoreObjectIdentifier.Table("routes", null);
+        var origin = routeEntity.FindComplexProperty(nameof(Route.Origin));
+        Assert.NotNull(origin);
+        Assert.True(origin.IsNullable is false);
+        Assert.Equal(
+            "origin_address",
+            origin.ComplexType.FindProperty(nameof(RouteLocation.Address))?.GetColumnName(routeTable));
+        Assert.Equal(
+            RouteLocation.AddressMaxLength,
+            origin.ComplexType.FindProperty(nameof(RouteLocation.Address))?.GetMaxLength());
+        Assert.Equal(
+            RouteLocation.CoordinatePrecision,
+            origin.ComplexType.FindProperty(nameof(RouteLocation.Latitude))?.GetPrecision());
+        Assert.Equal(
+            RouteLocation.CoordinateScale,
+            origin.ComplexType.FindProperty(nameof(RouteLocation.Longitude))?.GetScale());
+
+        var destination = routeEntity.FindComplexProperty(nameof(Route.Destination));
+        Assert.NotNull(destination);
+        Assert.Equal(
+            "destination_address",
+            destination.ComplexType.FindProperty(nameof(RouteLocation.Address))?.GetColumnName(routeTable));
+
         var routeCodeIndex = routeEntity.GetIndexes().Single(index =>
             index.Properties.Count == 2 &&
             index.Properties[0].Name == nameof(Route.CompanyId) &&
@@ -49,6 +72,20 @@ public sealed class RouteConfigurationTests
         var stopEntity = context.Model.FindEntityType(typeof(RouteStop));
         Assert.NotNull(stopEntity);
         Assert.Equal("route_stops", stopEntity.GetTableName());
+
+        var stopTable = StoreObjectIdentifier.Table("route_stops", null);
+        var stopLocation = stopEntity.FindComplexProperty(nameof(RouteStop.Location));
+        Assert.NotNull(stopLocation);
+        Assert.True(stopLocation.IsNullable is false);
+        Assert.Equal(
+            "address",
+            stopLocation.ComplexType.FindProperty(nameof(RouteLocation.Address))?.GetColumnName(stopTable));
+        Assert.Equal(
+            RouteLocation.CoordinatePrecision,
+            stopLocation.ComplexType.FindProperty(nameof(RouteLocation.Latitude))?.GetPrecision());
+        Assert.Equal(
+            RouteLocation.CoordinateScale,
+            stopLocation.ComplexType.FindProperty(nameof(RouteLocation.Longitude))?.GetScale());
 
         var stopSequenceIndex = stopEntity.GetIndexes().Single(index =>
             index.Properties.Count == 2 &&

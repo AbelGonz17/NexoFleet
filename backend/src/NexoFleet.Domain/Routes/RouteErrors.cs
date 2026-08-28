@@ -36,17 +36,9 @@ public static class RouteErrors
         "Route.OriginRequired",
         "El origen de la ruta es obligatorio.");
 
-    public static readonly Error OriginTooLong = Error.Validation(
-        "Route.OriginTooLong",
-        $"El origen no puede superar {Route.OriginMaxLength} caracteres.");
-
     public static readonly Error DestinationRequired = Error.Validation(
         "Route.DestinationRequired",
         "El destino de la ruta es obligatorio.");
-
-    public static readonly Error DestinationTooLong = Error.Validation(
-        "Route.DestinationTooLong",
-        $"El destino no puede superar {Route.DestinationMaxLength} caracteres.");
 
     public static readonly Error InstructionsTooLong = Error.Validation(
         "Route.InstructionsTooLong",
@@ -84,13 +76,9 @@ public static class RouteErrors
         "Route.StopNotFound",
         "La parada indicada no existe en la ruta.");
 
-    public static readonly Error StopAddressRequired = Error.Validation(
-        "Route.StopAddressRequired",
-        "La dirección de la parada es obligatoria.");
-
-    public static readonly Error StopAddressTooLong = Error.Validation(
-        "Route.StopAddressTooLong",
-        $"La dirección de la parada no puede superar {RouteStop.AddressMaxLength} caracteres.");
+    public static readonly Error StopLocationRequired = Error.Validation(
+        "Route.StopLocationRequired",
+        "La ubicación de la parada es obligatoria.");
 
     public static readonly Error StopInstructionsTooLong = Error.Validation(
         "Route.StopInstructionsTooLong",

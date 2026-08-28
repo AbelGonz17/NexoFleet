@@ -21,13 +21,31 @@ internal sealed class RouteConfiguration : IEntityTypeConfiguration<Route>
             .HasMaxLength(Route.NameMaxLength)
             .IsRequired();
 
-        builder.Property(route => route.Origin)
-            .HasMaxLength(Route.OriginMaxLength)
+        var origin = builder.ComplexProperty(route => route.Origin);
+        origin.IsRequired();
+        origin.Property(location => location.Address)
+            .HasColumnName("origin_address")
+            .HasMaxLength(RouteLocation.AddressMaxLength)
             .IsRequired();
+        origin.Property(location => location.Latitude)
+            .HasColumnName("origin_latitude")
+            .HasPrecision(RouteLocation.CoordinatePrecision, RouteLocation.CoordinateScale);
+        origin.Property(location => location.Longitude)
+            .HasColumnName("origin_longitude")
+            .HasPrecision(RouteLocation.CoordinatePrecision, RouteLocation.CoordinateScale);
 
-        builder.Property(route => route.Destination)
-            .HasMaxLength(Route.DestinationMaxLength)
+        var destination = builder.ComplexProperty(route => route.Destination);
+        destination.IsRequired();
+        destination.Property(location => location.Address)
+            .HasColumnName("destination_address")
+            .HasMaxLength(RouteLocation.AddressMaxLength)
             .IsRequired();
+        destination.Property(location => location.Latitude)
+            .HasColumnName("destination_latitude")
+            .HasPrecision(RouteLocation.CoordinatePrecision, RouteLocation.CoordinateScale);
+        destination.Property(location => location.Longitude)
+            .HasColumnName("destination_longitude")
+            .HasPrecision(RouteLocation.CoordinatePrecision, RouteLocation.CoordinateScale);
 
         builder.Property(route => route.Instructions)
             .HasMaxLength(Route.InstructionsMaxLength);

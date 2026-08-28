@@ -12,9 +12,18 @@ internal sealed class RouteStopConfiguration : IEntityTypeConfiguration<RouteSto
 
         builder.HasKey(stop => stop.Id);
 
-        builder.Property(stop => stop.Address)
-            .HasMaxLength(RouteStop.AddressMaxLength)
+        var location = builder.ComplexProperty(stop => stop.Location);
+        location.IsRequired();
+        location.Property(value => value.Address)
+            .HasColumnName("address")
+            .HasMaxLength(RouteLocation.AddressMaxLength)
             .IsRequired();
+        location.Property(value => value.Latitude)
+            .HasColumnName("latitude")
+            .HasPrecision(RouteLocation.CoordinatePrecision, RouteLocation.CoordinateScale);
+        location.Property(value => value.Longitude)
+            .HasColumnName("longitude")
+            .HasPrecision(RouteLocation.CoordinatePrecision, RouteLocation.CoordinateScale);
 
         builder.Property(stop => stop.Instructions)
             .HasMaxLength(RouteStop.InstructionsMaxLength);

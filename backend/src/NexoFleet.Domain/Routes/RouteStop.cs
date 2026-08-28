@@ -4,19 +4,18 @@ namespace NexoFleet.Domain.Routes;
 
 public sealed class RouteStop : Entity
 {
-    public const int AddressMaxLength = 300;
     public const int InstructionsMaxLength = 500;
 
     internal RouteStop(
         Guid id,
         Guid routeId,
         int sequence,
-        string address,
+        RouteLocation location,
         string? instructions) : base(id)
     {
         RouteId = routeId;
         Sequence = sequence;
-        Address = address;
+        Location = location;
         Instructions = instructions;
     }
 
@@ -28,13 +27,13 @@ public sealed class RouteStop : Entity
 
     public int Sequence { get; private set; }
 
-    public string Address { get; private set; } = string.Empty;
+    public RouteLocation Location { get; private set; } = null!;
 
     public string? Instructions { get; private set; }
 
-    internal void Update(string address, string? instructions)
+    internal void Update(RouteLocation location, string? instructions)
     {
-        Address = address;
+        Location = location;
         Instructions = instructions;
     }
 
