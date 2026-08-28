@@ -13,6 +13,8 @@ internal sealed class RouteConfiguration : IEntityTypeConfiguration<Route>
 
         builder.HasKey(route => route.Id);
 
+        builder.HasAlternateKey(route => new { route.CompanyId, route.Id });
+
         builder.Property(route => route.RouteCode)
             .HasMaxLength(Route.RouteCodeMaxLength)
             .IsRequired();

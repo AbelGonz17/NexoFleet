@@ -14,6 +14,8 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
 
         builder.HasKey(vehicle => vehicle.Id);
 
+        builder.HasAlternateKey(vehicle => new { vehicle.CompanyId, vehicle.Id });
+
         builder.Property(vehicle => vehicle.LicensePlate)
             .HasMaxLength(Vehicle.LicensePlateMaxLength)
             .IsRequired();
