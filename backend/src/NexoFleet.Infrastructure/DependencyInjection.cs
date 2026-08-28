@@ -11,6 +11,7 @@ using NexoFleet.Infrastructure.Persistence;
 using NexoFleet.Infrastructure.Time;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Employees;
+using NexoFleet.Domain.Routes;
 using NexoFleet.Domain.Vehicles;
 using NexoFleet.Infrastructure.Persistence.Repositories;
 
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
+        services.AddScoped<IRouteRepository, RouteRepository>();
 
         services
             .AddIdentityCore<ApplicationUser>(options =>

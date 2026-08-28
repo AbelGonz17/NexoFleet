@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Employees;
+using NexoFleet.Domain.Routes;
 using NexoFleet.Domain.Vehicles;
 using NexoFleet.Infrastructure.Identity;
 
@@ -19,6 +20,8 @@ public sealed class ApplicationDbContext(
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+
+    public DbSet<Route> Routes => Set<Route>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
