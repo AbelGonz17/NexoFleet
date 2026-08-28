@@ -4,6 +4,8 @@ namespace NexoFleet.Domain.Vehicles;
 
 public static class VehicleErrors
 {
+    public const int ApprovalReasonMaxLength = 500;
+
     public static readonly Error InvalidId = Error.Validation(
         "Vehicle.InvalidId",
         "El identificador del vehículo no es válido.");
@@ -51,6 +53,38 @@ public static class VehicleErrors
     public static readonly Error InvalidPassengerCapacity = Error.Validation(
         "Vehicle.InvalidPassengerCapacity",
         "La capacidad de pasajeros debe ser mayor que cero.");
+
+    public static readonly Error ApprovalNotRequired = Error.Conflict(
+        "Vehicle.ApprovalNotRequired",
+        "Los vehículos propiedad de la empresa no requieren aprobación.");
+
+    public static readonly Error AlreadyApproved = Error.Conflict(
+        "Vehicle.AlreadyApproved",
+        "El vehículo ya está aprobado.");
+
+    public static readonly Error AlreadyRejected = Error.Conflict(
+        "Vehicle.AlreadyRejected",
+        "El vehículo ya está rechazado.");
+
+    public static readonly Error ApprovalDecisionRequiresPendingStatus = Error.Conflict(
+        "Vehicle.ApprovalDecisionRequiresPendingStatus",
+        "El vehículo debe estar pendiente para registrar una decisión de aprobación.");
+
+    public static readonly Error ResubmissionRequiresChangesRequested = Error.Conflict(
+        "Vehicle.ResubmissionRequiresChangesRequested",
+        "Solo un vehículo devuelto para cambios puede reenviarse a aprobación.");
+
+    public static readonly Error ApprovalReasonRequired = Error.Validation(
+        "Vehicle.ApprovalReasonRequired",
+        "El motivo de la decisión es obligatorio.");
+
+    public static readonly Error ApprovalReasonTooLong = Error.Validation(
+        "Vehicle.ApprovalReasonTooLong",
+        $"El motivo no puede superar {ApprovalReasonMaxLength} caracteres.");
+
+    public static readonly Error VehicleNotApproved = Error.Conflict(
+        "Vehicle.VehicleNotApproved",
+        "El vehículo propio debe estar aprobado antes de iniciar un servicio.");
 
     public static readonly Error AlreadyAvailable = Error.Conflict(
         "Vehicle.AlreadyAvailable",

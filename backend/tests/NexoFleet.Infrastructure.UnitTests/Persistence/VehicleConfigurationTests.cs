@@ -32,6 +32,12 @@ public sealed class VehicleConfigurationTests
         Assert.Equal(
             typeof(string),
             entity.FindProperty(nameof(Vehicle.Status))?.GetProviderClrType());
+        Assert.Equal(
+            typeof(string),
+            entity.FindProperty(nameof(Vehicle.ApprovalStatus))?.GetProviderClrType());
+        Assert.Equal(
+            VehicleErrors.ApprovalReasonMaxLength,
+            entity.FindProperty(nameof(Vehicle.ApprovalDecisionReason))?.GetMaxLength());
 
         var licensePlateIndex = entity.GetIndexes().Single(index =>
             index.Properties.Count == 2 &&
@@ -43,6 +49,13 @@ public sealed class VehicleConfigurationTests
             index.Properties.Count == 1 &&
             index.Properties[0].Name == nameof(Vehicle.OwnerEmployeeId));
         Assert.False(ownerIndex.IsUnique);
+
+        var availabilityIndex = entity.GetIndexes().Single(index =>
+            index.Properties.Count == 3 &&
+            index.Properties[0].Name == nameof(Vehicle.CompanyId) &&
+            index.Properties[1].Name == nameof(Vehicle.ApprovalStatus) &&
+            index.Properties[2].Name == nameof(Vehicle.Status));
+        Assert.False(availabilityIndex.IsUnique);
 
         var companyForeignKey = entity.GetForeignKeys().Single(foreignKey =>
             foreignKey.PrincipalEntityType.ClrType == typeof(Company));

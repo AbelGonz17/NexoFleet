@@ -36,6 +36,9 @@ public sealed class Vehicle : AggregateRoot
         Type = type;
         PassengerCapacity = passengerCapacity;
         Status = VehicleStatus.Available;
+        ApprovalStatus = ownershipType == VehicleOwnershipType.CompanyOwned
+            ? VehicleApprovalStatus.NotRequired
+            : VehicleApprovalStatus.Pending;
         CreatedAtUtc = createdAtUtc;
     }
 
@@ -64,6 +67,16 @@ public sealed class Vehicle : AggregateRoot
     public int? PassengerCapacity { get; private set; }
 
     public VehicleStatus Status { get; private set; }
+
+    public VehicleApprovalStatus ApprovalStatus { get; private set; }
+
+    public string? ApprovalDecisionReason { get; private set; }
+
+    public DateTimeOffset? ApprovalDecidedAtUtc { get; private set; }
+
+    public bool CanBeAssigned =>
+        Status == VehicleStatus.Available &&
+        ApprovalStatus is VehicleApprovalStatus.NotRequired or VehicleApprovalStatus.Approved;
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
@@ -178,6 +191,107 @@ public sealed class Vehicle : AggregateRoot
         PassengerCapacity = passengerCapacity;
         UpdatedAtUtc = updatedAtUtc;
 
+        if (OwnershipType == VehicleOwnershipType.EmployeeOwned &&
+            ApprovalStatus == VehicleApprovalStatus.Approved)
+        {
+            ChangeApprovalStatus(
+                VehicleApprovalStatus.Pending,
+                null,
+                updatedAtUtc);
+        }
+
+        return Result.Success();
+    }
+
+    public Result Approve(DateTimeOffset occurredAtUtc)
+    {
+        if (ApprovalStatus == VehicleApprovalStatus.NotRequired)
+        {
+            return Result.Failure(VehicleErrors.ApprovalNotRequired);
+        }
+
+        if (ApprovalStatus == VehicleApprovalStatus.Approved)
+        {
+            return Result.Failure(VehicleErrors.AlreadyApproved);
+        }
+
+        if (ApprovalStatus == VehicleApprovalStatus.Rejected)
+        {
+            return Result.Failure(VehicleErrors.AlreadyRejected);
+        }
+
+        if (ApprovalStatus != VehicleApprovalStatus.Pending)
+        {
+            return Result.Failure(VehicleErrors.ApprovalDecisionRequiresPendingStatus);
+        }
+
+        ChangeApprovalStatus(VehicleApprovalStatus.Approved, null, occurredAtUtc);
+        return Result.Success();
+    }
+
+    public Result RequestChanges(string reason, DateTimeOffset occurredAtUtc)
+    {
+        var validationResult = ValidateApprovalReason(reason);
+        if (validationResult.IsFailure)
+        {
+            return validationResult;
+        }
+
+        if (ApprovalStatus == VehicleApprovalStatus.NotRequired)
+        {
+            return Result.Failure(VehicleErrors.ApprovalNotRequired);
+        }
+
+        if (ApprovalStatus != VehicleApprovalStatus.Pending)
+        {
+            return Result.Failure(VehicleErrors.ApprovalDecisionRequiresPendingStatus);
+        }
+
+        ChangeApprovalStatus(
+            VehicleApprovalStatus.ChangesRequested,
+            Normalize(reason),
+            occurredAtUtc);
+        return Result.Success();
+    }
+
+    public Result ResubmitForApproval(DateTimeOffset occurredAtUtc)
+    {
+        if (ApprovalStatus != VehicleApprovalStatus.ChangesRequested)
+        {
+            return Result.Failure(VehicleErrors.ResubmissionRequiresChangesRequested);
+        }
+
+        ChangeApprovalStatus(VehicleApprovalStatus.Pending, null, occurredAtUtc);
+        return Result.Success();
+    }
+
+    public Result Reject(string reason, DateTimeOffset occurredAtUtc)
+    {
+        var validationResult = ValidateApprovalReason(reason);
+        if (validationResult.IsFailure)
+        {
+            return validationResult;
+        }
+
+        if (ApprovalStatus == VehicleApprovalStatus.NotRequired)
+        {
+            return Result.Failure(VehicleErrors.ApprovalNotRequired);
+        }
+
+        if (ApprovalStatus == VehicleApprovalStatus.Rejected)
+        {
+            return Result.Failure(VehicleErrors.AlreadyRejected);
+        }
+
+        if (ApprovalStatus != VehicleApprovalStatus.Pending)
+        {
+            return Result.Failure(VehicleErrors.ApprovalDecisionRequiresPendingStatus);
+        }
+
+        ChangeApprovalStatus(
+            VehicleApprovalStatus.Rejected,
+            Normalize(reason),
+            occurredAtUtc);
         return Result.Success();
     }
 
@@ -196,6 +310,12 @@ public sealed class Vehicle : AggregateRoot
         if (Status == VehicleStatus.Maintenance)
         {
             return Result.Failure(VehicleErrors.MaintenanceVehicleCannotStartService);
+        }
+
+        if (ApprovalStatus is not VehicleApprovalStatus.NotRequired and
+            not VehicleApprovalStatus.Approved)
+        {
+            return Result.Failure(VehicleErrors.VehicleNotApproved);
         }
 
         ChangeStatus(VehicleStatus.InService, occurredAtUtc);
@@ -354,6 +474,21 @@ public sealed class Vehicle : AggregateRoot
         return Result.Success();
     }
 
+    private static Result ValidateApprovalReason(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(VehicleErrors.ApprovalReasonRequired);
+        }
+
+        if (reason.Trim().Length > VehicleErrors.ApprovalReasonMaxLength)
+        {
+            return Result.Failure(VehicleErrors.ApprovalReasonTooLong);
+        }
+
+        return Result.Success();
+    }
+
     private void ChangeStatus(VehicleStatus newStatus, DateTimeOffset occurredAtUtc)
     {
         var previousStatus = Status;
@@ -365,6 +500,30 @@ public sealed class Vehicle : AggregateRoot
             CompanyId,
             previousStatus,
             newStatus,
+            occurredAtUtc));
+    }
+
+    private void ChangeApprovalStatus(
+        VehicleApprovalStatus newStatus,
+        string? reason,
+        DateTimeOffset occurredAtUtc)
+    {
+        var previousStatus = ApprovalStatus;
+        ApprovalStatus = newStatus;
+        ApprovalDecisionReason = reason;
+        ApprovalDecidedAtUtc = newStatus is VehicleApprovalStatus.Approved or
+            VehicleApprovalStatus.ChangesRequested or
+            VehicleApprovalStatus.Rejected
+                ? occurredAtUtc
+                : null;
+        UpdatedAtUtc = occurredAtUtc;
+
+        RaiseDomainEvent(new VehicleApprovalStatusChangedDomainEvent(
+            Id,
+            CompanyId,
+            previousStatus,
+            newStatus,
+            reason,
             occurredAtUtc));
     }
 

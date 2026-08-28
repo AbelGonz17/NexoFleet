@@ -26,6 +26,8 @@ public sealed class VehicleTests
         Assert.Equal("Coaster", result.Value.Model);
         Assert.Equal("Blanco", result.Value.Color);
         Assert.Equal(VehicleStatus.Available, result.Value.Status);
+        Assert.Equal(VehicleApprovalStatus.NotRequired, result.Value.ApprovalStatus);
+        Assert.True(result.Value.CanBeAssigned);
 
         var domainEvent = Assert.IsType<VehicleCreatedDomainEvent>(
             result.Value.DomainEvents.Single());
@@ -43,6 +45,8 @@ public sealed class VehicleTests
         Assert.True(successResult.IsSuccess);
         Assert.Equal(ownerEmployeeId, successResult.Value.OwnerEmployeeId);
         Assert.Equal(VehicleOwnershipType.EmployeeOwned, successResult.Value.OwnershipType);
+        Assert.Equal(VehicleApprovalStatus.Pending, successResult.Value.ApprovalStatus);
+        Assert.False(successResult.Value.CanBeAssigned);
         Assert.True(failureResult.IsFailure);
         Assert.Equal(VehicleErrors.InvalidOwnerEmployeeId, failureResult.Error);
     }
@@ -138,6 +142,104 @@ public sealed class VehicleTests
         Assert.Equal("Mercedes-Benz", vehicle.Make);
         Assert.Equal(Now.AddHours(1), vehicle.UpdatedAtUtc);
         Assert.Empty(vehicle.DomainEvents);
+    }
+
+    [Fact]
+    public void EmployeeOwnedVehicleShouldRequireApprovalBeforeService()
+    {
+        var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
+        vehicle.ClearDomainEvents();
+
+        var invalidStartResult = vehicle.StartService(Now.AddHours(1));
+        var approveResult = vehicle.Approve(Now.AddHours(2));
+        var startResult = vehicle.StartService(Now.AddHours(3));
+
+        Assert.Equal(VehicleErrors.VehicleNotApproved, invalidStartResult.Error);
+        Assert.True(approveResult.IsSuccess);
+        Assert.Equal(VehicleApprovalStatus.Approved, vehicle.ApprovalStatus);
+        Assert.Equal(Now.AddHours(2), vehicle.ApprovalDecidedAtUtc);
+        Assert.True(startResult.IsSuccess);
+        Assert.Equal(VehicleStatus.InService, vehicle.Status);
+        Assert.IsType<VehicleApprovalStatusChangedDomainEvent>(
+            vehicle.DomainEvents.First());
+    }
+
+    [Fact]
+    public void CompanyOwnedVehicleShouldNotEnterApprovalWorkflow()
+    {
+        var vehicle = CreateCompanyVehicle().Value;
+
+        var result = vehicle.Approve(Now.AddHours(1));
+
+        Assert.Equal(VehicleErrors.ApprovalNotRequired, result.Error);
+        Assert.Equal(VehicleApprovalStatus.NotRequired, vehicle.ApprovalStatus);
+    }
+
+    [Fact]
+    public void RequestChangesShouldRequireReasonAndAllowResubmission()
+    {
+        var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
+        vehicle.ClearDomainEvents();
+
+        var missingReasonResult = vehicle.RequestChanges(" ", Now.AddHours(1));
+        var requestChangesResult = vehicle.RequestChanges(
+            " Actualizar fotografía del documento ",
+            Now.AddHours(2));
+        var resubmitResult = vehicle.ResubmitForApproval(Now.AddHours(3));
+
+        Assert.Equal(VehicleErrors.ApprovalReasonRequired, missingReasonResult.Error);
+        Assert.True(requestChangesResult.IsSuccess);
+        Assert.True(resubmitResult.IsSuccess);
+        Assert.Equal(VehicleApprovalStatus.Pending, vehicle.ApprovalStatus);
+        Assert.Null(vehicle.ApprovalDecisionReason);
+        Assert.Null(vehicle.ApprovalDecidedAtUtc);
+        Assert.Equal(2, vehicle.DomainEvents.Count);
+    }
+
+    [Fact]
+    public void RejectionShouldRequireReasonAndBeFinal()
+    {
+        var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
+
+        var rejectResult = vehicle.Reject(
+            "El vehículo no cumple los requisitos de seguridad.",
+            Now.AddHours(1));
+        var approveResult = vehicle.Approve(Now.AddHours(2));
+        var repeatedRejectResult = vehicle.Reject(
+            "Rechazo repetido.",
+            Now.AddHours(3));
+
+        Assert.True(rejectResult.IsSuccess);
+        Assert.Equal(VehicleApprovalStatus.Rejected, vehicle.ApprovalStatus);
+        Assert.Equal("El vehículo no cumple los requisitos de seguridad.", vehicle.ApprovalDecisionReason);
+        Assert.Equal(VehicleErrors.AlreadyRejected, approveResult.Error);
+        Assert.Equal(VehicleErrors.AlreadyRejected, repeatedRejectResult.Error);
+    }
+
+    [Fact]
+    public void UpdatingApprovedEmployeeVehicleShouldRequireNewApproval()
+    {
+        var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
+        vehicle.Approve(Now.AddHours(1));
+        vehicle.ClearDomainEvents();
+
+        var updateResult = vehicle.UpdateDetails(
+            "new-789",
+            vehicle.Make,
+            vehicle.Model,
+            vehicle.ManufactureYear,
+            vehicle.Color,
+            vehicle.Type,
+            vehicle.PassengerCapacity,
+            Now.AddHours(2));
+
+        Assert.True(updateResult.IsSuccess);
+        Assert.Equal(VehicleApprovalStatus.Pending, vehicle.ApprovalStatus);
+        Assert.False(vehicle.CanBeAssigned);
+        var domainEvent = Assert.IsType<VehicleApprovalStatusChangedDomainEvent>(
+            vehicle.DomainEvents.Single());
+        Assert.Equal(VehicleApprovalStatus.Approved, domainEvent.PreviousStatus);
+        Assert.Equal(VehicleApprovalStatus.Pending, domainEvent.CurrentStatus);
     }
 
     [Fact]

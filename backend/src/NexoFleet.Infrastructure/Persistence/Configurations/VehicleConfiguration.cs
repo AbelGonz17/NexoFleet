@@ -44,6 +44,17 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Property(vehicle => vehicle.ApprovalStatus)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(vehicle => vehicle.ApprovalDecisionReason)
+            .HasMaxLength(VehicleErrors.ApprovalReasonMaxLength);
+
+        builder.Property(vehicle => vehicle.ApprovalDecidedAtUtc)
+            .HasColumnType("timestamp with time zone");
+
         builder.Property(vehicle => vehicle.CreatedAtUtc)
             .HasColumnType("timestamp with time zone")
             .IsRequired();
@@ -55,6 +66,13 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
             .IsUnique();
 
         builder.HasIndex(vehicle => vehicle.OwnerEmployeeId);
+
+        builder.HasIndex(vehicle => new
+        {
+            vehicle.CompanyId,
+            vehicle.ApprovalStatus,
+            vehicle.Status
+        });
 
         builder.HasOne<Company>()
             .WithMany()
