@@ -9,10 +9,15 @@ using NexoFleet.Application.Abstractions.Time;
 using NexoFleet.Infrastructure.Identity;
 using NexoFleet.Infrastructure.Persistence;
 using NexoFleet.Infrastructure.Time;
+using NexoFleet.Domain.Auditing;
+using NexoFleet.Domain.Clients;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Employees;
+using NexoFleet.Domain.Notifications;
+using NexoFleet.Domain.Payments;
 using NexoFleet.Domain.Routes;
 using NexoFleet.Domain.RouteSchedules;
+using NexoFleet.Domain.Trips;
 using NexoFleet.Domain.Vehicles;
 using NexoFleet.Infrastructure.Persistence.Repositories;
 
@@ -29,11 +34,17 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IClientRepository, ClientRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IRouteRepository, RouteRepository>();
         services.AddScoped<IRouteScheduleRepository, RouteScheduleRepository>();
+        services.AddScoped<ITripRepository, TripRepository>();
+        services.AddScoped<IPaymentPeriodRepository, PaymentPeriodRepository>();
+        services.AddScoped<IPaymentReportRepository, PaymentReportRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         services
             .AddIdentityCore<ApplicationUser>(options =>

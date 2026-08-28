@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NexoFleet.Domain.Clients;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Routes;
 
@@ -78,6 +79,12 @@ internal sealed class RouteConfiguration : IEntityTypeConfiguration<Route>
         builder.HasOne<Company>()
             .WithMany()
             .HasForeignKey(route => route.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Client>()
+            .WithMany()
+            .HasForeignKey(route => new { route.CompanyId, route.ClientId })
+            .HasPrincipalKey(client => new { client.CompanyId, client.Id })
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(route => route.Stops)

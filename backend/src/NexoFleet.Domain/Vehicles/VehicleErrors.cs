@@ -5,6 +5,9 @@ namespace NexoFleet.Domain.Vehicles;
 public static class VehicleErrors
 {
     public const int ApprovalReasonMaxLength = 500;
+    public const int DocumentFileNameMaxLength = 255;
+    public const int DocumentStorageKeyMaxLength = 500;
+    public const int DocumentContentTypeMaxLength = 150;
 
     public static readonly Error InvalidId = Error.Validation(
         "Vehicle.InvalidId",
@@ -125,4 +128,15 @@ public static class VehicleErrors
     public static readonly Error InServiceVehicleCannotBeMarkedAvailable = Error.Conflict(
         "Vehicle.InServiceVehicleCannotBeMarkedAvailable",
         "El servicio del vehículo debe finalizarse mediante la operación correspondiente.");
+
+    public static readonly Error InvalidDocumentId = Error.Validation("Vehicle.InvalidDocumentId", "El identificador del documento no es válido.");
+    public static readonly Error InvalidDocumentType = Error.Validation("Vehicle.InvalidDocumentType", "El tipo de documento no es válido.");
+    public static readonly Error DocumentFileNameRequired = Error.Validation("Vehicle.DocumentFileNameRequired", "El nombre del archivo es obligatorio.");
+    public static readonly Error DocumentStorageKeyRequired = Error.Validation("Vehicle.DocumentStorageKeyRequired", "La clave de almacenamiento es obligatoria.");
+    public static readonly Error DocumentContentTypeRequired = Error.Validation("Vehicle.DocumentContentTypeRequired", "El tipo de contenido es obligatorio.");
+    public static readonly Error InvalidDocumentSize = Error.Validation("Vehicle.InvalidDocumentSize", "El tamaño del documento debe ser mayor que cero.");
+    public static readonly Error DocumentMetadataTooLong = Error.Validation("Vehicle.DocumentMetadataTooLong", "Los metadatos del documento superan la longitud permitida.");
+    public static readonly Error InvalidUploadedByUserId = Error.Validation("Vehicle.InvalidUploadedByUserId", "El usuario que carga el documento no es válido.");
+    public static readonly Error DocumentAlreadyExists = Error.Conflict("Vehicle.DocumentAlreadyExists", "El documento ya existe.");
+    public static readonly Error DocumentNotFound = Error.NotFound("Vehicle.DocumentNotFound", "El documento no fue encontrado.");
 }

@@ -5,6 +5,8 @@ namespace NexoFleet.Domain.Vehicles;
 
 public sealed class Vehicle : AggregateRoot
 {
+    private readonly List<VehicleDocument> _documents = [];
+
     public const int LicensePlateMaxLength = 20;
     public const int MakeMaxLength = 100;
     public const int ModelMaxLength = 100;
@@ -81,6 +83,8 @@ public sealed class Vehicle : AggregateRoot
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public DateTimeOffset? UpdatedAtUtc { get; private set; }
+
+    public IReadOnlyCollection<VehicleDocument> Documents => _documents.AsReadOnly();
 
     public static Result<Vehicle> CreateCompanyOwned(
         Guid id,
@@ -292,6 +296,57 @@ public sealed class Vehicle : AggregateRoot
             VehicleApprovalStatus.Rejected,
             Normalize(reason),
             occurredAtUtc);
+        return Result.Success();
+    }
+
+    public Result AddDocument(
+        Guid documentId,
+        VehicleDocumentType type,
+        string fileName,
+        string storageKey,
+        string contentType,
+        long sizeInBytes,
+        DateOnly? expiresOn,
+        Guid uploadedByUserId,
+        DateTimeOffset uploadedAtUtc)
+    {
+        if (documentId == Guid.Empty) return Result.Failure(VehicleErrors.InvalidDocumentId);
+        if (!Enum.IsDefined(type)) return Result.Failure(VehicleErrors.InvalidDocumentType);
+        if (string.IsNullOrWhiteSpace(fileName)) return Result.Failure(VehicleErrors.DocumentFileNameRequired);
+        if (string.IsNullOrWhiteSpace(storageKey)) return Result.Failure(VehicleErrors.DocumentStorageKeyRequired);
+        if (string.IsNullOrWhiteSpace(contentType)) return Result.Failure(VehicleErrors.DocumentContentTypeRequired);
+        if (sizeInBytes <= 0) return Result.Failure(VehicleErrors.InvalidDocumentSize);
+        if (uploadedByUserId == Guid.Empty) return Result.Failure(VehicleErrors.InvalidUploadedByUserId);
+        if (fileName.Trim().Length > VehicleErrors.DocumentFileNameMaxLength ||
+            storageKey.Trim().Length > VehicleErrors.DocumentStorageKeyMaxLength ||
+            contentType.Trim().Length > VehicleErrors.DocumentContentTypeMaxLength)
+        {
+            return Result.Failure(VehicleErrors.DocumentMetadataTooLong);
+        }
+        if (_documents.Any(document => document.Id == documentId)) return Result.Failure(VehicleErrors.DocumentAlreadyExists);
+
+        _documents.Add(new VehicleDocument(
+            documentId,
+            Id,
+            CompanyId,
+            type,
+            Normalize(fileName),
+            Normalize(storageKey),
+            Normalize(contentType).ToLowerInvariant(),
+            sizeInBytes,
+            expiresOn,
+            uploadedByUserId,
+            uploadedAtUtc));
+        RequireNewApprovalAfterDocumentChange(uploadedAtUtc);
+        return Result.Success();
+    }
+
+    public Result RemoveDocument(Guid documentId, DateTimeOffset updatedAtUtc)
+    {
+        var document = _documents.SingleOrDefault(candidate => candidate.Id == documentId);
+        if (document is null) return Result.Failure(VehicleErrors.DocumentNotFound);
+        _documents.Remove(document);
+        RequireNewApprovalAfterDocumentChange(updatedAtUtc);
         return Result.Success();
     }
 
@@ -525,6 +580,18 @@ public sealed class Vehicle : AggregateRoot
             newStatus,
             reason,
             occurredAtUtc));
+    }
+
+    private void RequireNewApprovalAfterDocumentChange(DateTimeOffset occurredAtUtc)
+    {
+        if (OwnershipType == VehicleOwnershipType.EmployeeOwned &&
+            ApprovalStatus == VehicleApprovalStatus.Approved)
+        {
+            ChangeApprovalStatus(VehicleApprovalStatus.Pending, null, occurredAtUtc);
+            return;
+        }
+
+        UpdatedAtUtc = occurredAtUtc;
     }
 
     private static string Normalize(string value) => value.Trim();

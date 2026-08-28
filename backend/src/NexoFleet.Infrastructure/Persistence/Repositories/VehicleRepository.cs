@@ -9,7 +9,9 @@ internal sealed class VehicleRepository(ApplicationDbContext dbContext)
     public Task<Vehicle?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default) =>
-        dbContext.Vehicles.SingleOrDefaultAsync(
+        dbContext.Vehicles
+            .Include(vehicle => vehicle.Documents)
+            .SingleOrDefaultAsync(
             vehicle => vehicle.Id == id,
             cancellationToken);
 
@@ -17,6 +19,7 @@ internal sealed class VehicleRepository(ApplicationDbContext dbContext)
         Guid ownerEmployeeId,
         CancellationToken cancellationToken = default) =>
         await dbContext.Vehicles
+            .Include(vehicle => vehicle.Documents)
             .Where(vehicle => vehicle.OwnerEmployeeId == ownerEmployeeId)
             .ToListAsync(cancellationToken);
 

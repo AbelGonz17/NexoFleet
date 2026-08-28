@@ -9,6 +9,29 @@ public sealed class VehicleTests
     private static readonly DateTimeOffset Now = new(2026, 8, 28, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public void VehicleDocumentShouldBeAddedAndRemoved()
+    {
+        var vehicle = CreateCompanyVehicle().Value;
+        var documentId = Guid.NewGuid();
+
+        var addResult = vehicle.AddDocument(
+            documentId,
+            VehicleDocumentType.Insurance,
+            " insurance.pdf ",
+            " vehicles/insurance.pdf ",
+            " APPLICATION/PDF ",
+            1000,
+            new DateOnly(2027, 8, 27),
+            Guid.NewGuid(),
+            Now.AddMinutes(1));
+        var removeResult = vehicle.RemoveDocument(documentId, Now.AddMinutes(2));
+
+        Assert.True(addResult.IsSuccess);
+        Assert.True(removeResult.IsSuccess);
+        Assert.Empty(vehicle.Documents);
+    }
+
+    [Fact]
     public void CreateCompanyOwnedShouldNormalizeDataAndRaiseEvent()
     {
         var id = Guid.NewGuid();

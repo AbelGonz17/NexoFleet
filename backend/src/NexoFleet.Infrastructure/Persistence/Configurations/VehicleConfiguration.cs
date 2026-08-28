@@ -87,6 +87,15 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
             .HasPrincipalKey(employee => new { employee.CompanyId, employee.Id })
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(vehicle => vehicle.Documents)
+            .WithOne()
+            .HasForeignKey(document => new { document.CompanyId, document.VehicleId })
+            .HasPrincipalKey(vehicle => new { vehicle.CompanyId, vehicle.Id })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(vehicle => vehicle.Documents)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.Ignore(vehicle => vehicle.DomainEvents);
     }
 }
