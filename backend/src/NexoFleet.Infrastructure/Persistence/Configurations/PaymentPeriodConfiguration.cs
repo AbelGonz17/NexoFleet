@@ -10,7 +10,7 @@ internal sealed class PaymentPeriodConfiguration : IEntityTypeConfiguration<Paym
     public void Configure(EntityTypeBuilder<PaymentPeriod> builder)
     {
         builder.ToTable("payment_periods", table =>
-            table.HasCheckConstraint("CK_payment_periods_dates", "\"EndsOn\" >= \"StartsOn\""));
+            table.HasCheckConstraint("ck_payment_periods_dates", "\"ends_on\" >= \"starts_on\""));
         builder.HasKey(period => period.Id);
         builder.HasAlternateKey(period => new { period.CompanyId, period.Id });
         builder.Property(period => period.Code).HasMaxLength(PaymentErrors.CodeMaxLength).IsRequired();

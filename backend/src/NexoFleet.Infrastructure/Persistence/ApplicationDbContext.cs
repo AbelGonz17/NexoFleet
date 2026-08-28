@@ -47,5 +47,6 @@ public sealed class ApplicationDbContext(
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        builder.UseSnakeCaseNames();
     }
 }

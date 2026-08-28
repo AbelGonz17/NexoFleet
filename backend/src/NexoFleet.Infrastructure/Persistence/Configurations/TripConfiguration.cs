@@ -15,9 +15,9 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
     {
         builder.ToTable("trips", table =>
         {
-            table.HasCheckConstraint("CK_trips_agreed_amount", "\"AgreedAmount\" IS NULL OR \"AgreedAmount\" >= 0");
-            table.HasCheckConstraint("CK_trips_final_amount", "\"FinalAmount\" IS NULL OR \"FinalAmount\" >= 0");
-            table.HasCheckConstraint("CK_trips_service_times", "\"CompletedAtUtc\" IS NULL OR \"StartedAtUtc\" IS NULL OR \"CompletedAtUtc\" >= \"StartedAtUtc\"");
+            table.HasCheckConstraint("ck_trips_agreed_amount", "\"agreed_amount\" IS NULL OR \"agreed_amount\" >= 0");
+            table.HasCheckConstraint("ck_trips_final_amount", "\"final_amount\" IS NULL OR \"final_amount\" >= 0");
+            table.HasCheckConstraint("ck_trips_service_times", "\"completed_at_utc\" IS NULL OR \"started_at_utc\" IS NULL OR \"completed_at_utc\" >= \"started_at_utc\"");
         });
 
         builder.HasKey(trip => trip.Id);

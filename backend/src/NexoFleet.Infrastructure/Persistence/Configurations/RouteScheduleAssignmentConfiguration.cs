@@ -13,8 +13,8 @@ internal sealed class RouteScheduleAssignmentConfiguration
     {
         builder.ToTable("route_schedule_assignments", table =>
             table.HasCheckConstraint(
-                "CK_route_schedule_assignments_valid_period",
-                "\"ValidUntil\" IS NULL OR \"ValidUntil\" >= \"ValidFrom\""));
+                "ck_route_schedule_assignments_valid_period",
+                "\"valid_until\" IS NULL OR \"valid_until\" >= \"valid_from\""));
 
         builder.HasKey(assignment => assignment.Id);
 
@@ -37,11 +37,11 @@ internal sealed class RouteScheduleAssignmentConfiguration
             assignment.RouteScheduleId,
             assignment.ValidFrom,
             assignment.ValidUntil
-        });
+        }).HasDatabaseName("ix_route_schedule_assignments_period");
 
         builder.HasIndex(assignment => assignment.RouteScheduleId)
             .IsUnique()
-            .HasFilter("\"ValidUntil\" IS NULL");
+            .HasFilter("\"valid_until\" IS NULL");
 
         builder.HasIndex(assignment => new
         {

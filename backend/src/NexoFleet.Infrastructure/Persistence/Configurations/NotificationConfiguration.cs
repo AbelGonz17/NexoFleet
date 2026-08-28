@@ -22,7 +22,8 @@ internal sealed class NotificationConfiguration : IEntityTypeConfiguration<Notif
         builder.Property(notification => notification.ArchivedAtUtc).HasColumnType("timestamp with time zone");
         builder.Property(notification => notification.CreatedAtUtc).HasColumnType("timestamp with time zone").IsRequired();
         builder.HasIndex(notification => new { notification.RecipientUserId, notification.Status, notification.CreatedAtUtc });
-        builder.HasIndex(notification => new { notification.CompanyId, notification.RelatedEntityType, notification.RelatedEntityId });
+        builder.HasIndex(notification => new { notification.CompanyId, notification.RelatedEntityType, notification.RelatedEntityId })
+            .HasDatabaseName("ix_notifications_related_entity");
 
         builder.HasOne<Company>().WithMany().HasForeignKey(notification => notification.CompanyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(notification => notification.RecipientUserId).OnDelete(DeleteBehavior.Cascade);

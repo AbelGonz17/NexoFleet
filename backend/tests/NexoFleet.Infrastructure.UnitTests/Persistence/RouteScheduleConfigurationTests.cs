@@ -41,7 +41,7 @@ public sealed class RouteScheduleConfigurationTests
         Assert.NotNull(designScheduleEntity);
         Assert.Contains(
             designScheduleEntity.GetCheckConstraints(),
-            constraint => constraint.Name == "CK_route_schedules_effective_period");
+            constraint => constraint.Name == "ck_route_schedules_effective_period");
 
         var routeForeignKey = scheduleEntity.GetForeignKeys().Single(foreignKey =>
             foreignKey.PrincipalEntityType.ClrType == typeof(Route));
@@ -67,13 +67,13 @@ public sealed class RouteScheduleConfigurationTests
         Assert.NotNull(designAssignmentEntity);
         Assert.Contains(
             designAssignmentEntity.GetCheckConstraints(),
-            constraint => constraint.Name == "CK_route_schedule_assignments_valid_period");
+            constraint => constraint.Name == "ck_route_schedule_assignments_valid_period");
 
         var openAssignmentIndex = assignmentEntity.GetIndexes().Single(index =>
             index.Properties.Count == 1 &&
             index.Properties[0].Name == nameof(RouteScheduleAssignment.RouteScheduleId));
         Assert.True(openAssignmentIndex.IsUnique);
-        Assert.Equal("\"ValidUntil\" IS NULL", openAssignmentIndex.GetFilter());
+        Assert.Equal("\"valid_until\" IS NULL", openAssignmentIndex.GetFilter());
 
         var scheduleForeignKey = assignmentEntity.GetForeignKeys().Single(foreignKey =>
             foreignKey.PrincipalEntityType.ClrType == typeof(RouteSchedule));

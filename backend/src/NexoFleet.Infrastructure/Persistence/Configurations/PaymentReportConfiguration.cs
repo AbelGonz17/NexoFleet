@@ -10,7 +10,7 @@ internal sealed class PaymentReportConfiguration : IEntityTypeConfiguration<Paym
     public void Configure(EntityTypeBuilder<PaymentReport> builder)
     {
         builder.ToTable("payment_reports", table =>
-            table.HasCheckConstraint("CK_payment_reports_base_amount", "\"BaseAmount\" >= 0"));
+            table.HasCheckConstraint("ck_payment_reports_base_amount", "\"base_amount\" >= 0"));
         builder.HasKey(report => report.Id);
         builder.HasAlternateKey(report => new { report.CompanyId, report.Id });
         builder.Property(report => report.BaseAmount).HasPrecision(18, 2).IsRequired();
@@ -39,10 +39,12 @@ internal sealed class PaymentReportConfiguration : IEntityTypeConfiguration<Paym
         builder.HasMany(report => report.Comments).WithOne()
             .HasForeignKey(comment => new { comment.CompanyId, comment.PaymentReportId })
             .HasPrincipalKey(report => new { report.CompanyId, report.Id })
+            .HasConstraintName("fk_payment_comments_payment_reports")
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(report => report.Files).WithOne()
             .HasForeignKey(file => new { file.CompanyId, file.PaymentReportId })
             .HasPrincipalKey(report => new { report.CompanyId, report.Id })
+            .HasConstraintName("fk_payment_report_files_payment_reports")
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(report => report.Items).UsePropertyAccessMode(PropertyAccessMode.Field);

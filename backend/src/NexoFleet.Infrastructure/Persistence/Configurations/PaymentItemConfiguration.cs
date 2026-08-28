@@ -10,7 +10,7 @@ internal sealed class PaymentItemConfiguration : IEntityTypeConfiguration<Paymen
     public void Configure(EntityTypeBuilder<PaymentItem> builder)
     {
         builder.ToTable("payment_items", table =>
-            table.HasCheckConstraint("CK_payment_items_amount", "\"Amount\" >= 0"));
+            table.HasCheckConstraint("ck_payment_items_amount", "\"amount\" >= 0"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Effect).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(item => item.Description).HasMaxLength(PaymentErrors.DescriptionMaxLength).IsRequired();

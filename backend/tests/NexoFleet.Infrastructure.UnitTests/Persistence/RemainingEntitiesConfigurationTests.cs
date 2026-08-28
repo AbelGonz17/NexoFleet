@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.AspNetCore.Identity;
 using NexoFleet.Domain.Auditing;
 using NexoFleet.Domain.Clients;
 using NexoFleet.Domain.Notifications;
@@ -8,11 +9,30 @@ using NexoFleet.Domain.Payments;
 using NexoFleet.Domain.Trips;
 using NexoFleet.Domain.Vehicles;
 using NexoFleet.Infrastructure.Persistence;
+using NexoFleet.Infrastructure.Identity;
 
 namespace NexoFleet.Infrastructure.UnitTests.Persistence;
 
 public sealed class RemainingEntitiesConfigurationTests
 {
+    [Fact]
+    public void ModelShouldUseSnakeCaseForDomainAndIdentityObjects()
+    {
+        using var context = CreateContext();
+        var user = context.Model.FindEntityType(typeof(ApplicationUser));
+        var role = context.Model.FindEntityType(typeof(IdentityRole<Guid>));
+        var trip = context.Model.FindEntityType(typeof(Trip));
+
+        Assert.NotNull(user);
+        Assert.NotNull(role);
+        Assert.NotNull(trip);
+        Assert.Equal("asp_net_users", user.GetTableName());
+        Assert.Equal("asp_net_roles", role.GetTableName());
+        Assert.Equal("company_id", user.FindProperty(nameof(ApplicationUser.CompanyId))?.GetColumnName());
+        Assert.Equal("trip_number", trip.FindProperty(nameof(Trip.TripNumber))?.GetColumnName());
+        Assert.All(user.GetIndexes(), index => Assert.Equal(index.GetDatabaseName()?.ToLowerInvariant(), index.GetDatabaseName()));
+    }
+
     [Fact]
     public void AuditLogShouldUseJsonAndAuditIndexes()
     {
@@ -78,7 +98,7 @@ public sealed class RemainingEntitiesConfigurationTests
         Assert.NotNull(period);
         Assert.NotNull(designPeriod);
         Assert.Equal("payment_periods", period.GetTableName());
-        Assert.Contains(designPeriod.GetCheckConstraints(), constraint => constraint.Name == "CK_payment_periods_dates");
+        Assert.Contains(designPeriod.GetCheckConstraints(), constraint => constraint.Name == "ck_payment_periods_dates");
     }
 
     [Fact]

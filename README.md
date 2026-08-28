@@ -54,14 +54,22 @@ NexoFleet.sln
    Ambos contenedores comparten la red Docker `nexofleet-network` y conservan
    sus datos mediante volúmenes independientes.
 
-3. Restaurar y ejecutar el backend:
+3. Configurar la conexión de la API mediante User Secrets. La contraseña y los
+   demás valores deben coincidir con el archivo local `.env`:
+
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:Database" "Host=localhost;Port=5432;Database=nexofleet;Username=nexofleet;Password=TU_PASSWORD_LOCAL" --project backend/src/NexoFleet.Api
+   ```
+
+4. Restaurar, aplicar las migraciones y ejecutar el backend:
 
    ```bash
    dotnet restore NexoFleet.sln --configfile NuGet.Config
+   dotnet ef database update --project backend/src/NexoFleet.Infrastructure --startup-project backend/src/NexoFleet.Api
    dotnet run --project backend/src/NexoFleet.Api
    ```
 
-4. Instalar y ejecutar el frontend:
+5. Instalar y ejecutar el frontend:
 
    ```bash
    cd frontend

@@ -12,8 +12,8 @@ internal sealed class RouteScheduleConfiguration
     {
         builder.ToTable("route_schedules", table =>
             table.HasCheckConstraint(
-                "CK_route_schedules_effective_period",
-                "\"EffectiveUntil\" IS NULL OR \"EffectiveUntil\" >= \"EffectiveFrom\""));
+                "ck_route_schedules_effective_period",
+                "\"effective_until\" IS NULL OR \"effective_until\" >= \"effective_from\""));
 
         builder.HasKey(schedule => schedule.Id);
         builder.HasAlternateKey(schedule => new { schedule.CompanyId, schedule.Id });
@@ -88,6 +88,7 @@ internal sealed class RouteScheduleConfiguration
                 assignment.RouteScheduleId
             })
             .HasPrincipalKey(schedule => new { schedule.CompanyId, schedule.Id })
+            .HasConstraintName("fk_route_schedule_assignments_route_schedules")
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(schedule => schedule.Days)

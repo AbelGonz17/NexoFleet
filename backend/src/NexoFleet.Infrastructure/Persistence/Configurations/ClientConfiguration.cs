@@ -26,7 +26,7 @@ internal sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasIndex(client => new { client.CompanyId, client.ClientCode }).IsUnique();
         builder.HasIndex(client => new { client.CompanyId, client.TaxIdentification })
             .IsUnique()
-            .HasFilter("\"TaxIdentification\" IS NOT NULL");
+            .HasFilter("\"tax_identification\" IS NOT NULL");
 
         builder.HasOne<Company>()
             .WithMany()

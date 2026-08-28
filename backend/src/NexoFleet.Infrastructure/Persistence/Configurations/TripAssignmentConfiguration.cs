@@ -15,7 +15,7 @@ internal sealed class TripAssignmentConfiguration : IEntityTypeConfiguration<Tri
         builder.HasKey(assignment => assignment.Id);
         builder.Property(assignment => assignment.AssignedAtUtc).HasColumnType("timestamp with time zone").IsRequired();
         builder.Property(assignment => assignment.EndedAtUtc).HasColumnType("timestamp with time zone");
-        builder.HasIndex(assignment => assignment.TripId).IsUnique().HasFilter("\"EndedAtUtc\" IS NULL");
+        builder.HasIndex(assignment => assignment.TripId).IsUnique().HasFilter("\"ended_at_utc\" IS NULL");
         builder.HasIndex(assignment => new { assignment.CompanyId, assignment.EmployeeId, assignment.AssignedAtUtc });
 
         builder.HasOne<Employee>().WithMany()

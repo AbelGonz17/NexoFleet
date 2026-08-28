@@ -20,3 +20,6 @@ indent_size = 2
 [*.md]
 trim_trailing_whitespace = false
 
+[backend/src/NexoFleet.Infrastructure/Persistence/Migrations/*.cs]
+generated_code = true
+dotnet_diagnostic.CA1861.severity = none
