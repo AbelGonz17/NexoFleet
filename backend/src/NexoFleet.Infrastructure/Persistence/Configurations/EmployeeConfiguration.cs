@@ -14,6 +14,8 @@ internal sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 
         builder.HasKey(employee => employee.Id);
 
+        builder.HasAlternateKey(employee => new { employee.CompanyId, employee.Id });
+
         builder.Property(employee => employee.EmployeeCode)
             .HasMaxLength(Employee.EmployeeCodeMaxLength)
             .IsRequired();
