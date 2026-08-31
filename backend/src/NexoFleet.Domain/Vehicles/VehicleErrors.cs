@@ -57,6 +57,10 @@ public static class VehicleErrors
         "Vehicle.InvalidPassengerCapacity",
         "La capacidad de pasajeros debe ser mayor que cero.");
 
+    public static readonly Error InvalidVehicleType = Error.Validation(
+        "Vehicle.InvalidVehicleType",
+        "El tipo de vehículo no es válido.");
+
     public static readonly Error ApprovalNotRequired = Error.Conflict(
         "Vehicle.ApprovalNotRequired",
         "Los vehículos propiedad de la empresa no requieren aprobación.");
@@ -73,10 +77,6 @@ public static class VehicleErrors
         "Vehicle.ApprovalDecisionRequiresPendingStatus",
         "El vehículo debe estar pendiente para registrar una decisión de aprobación.");
 
-    public static readonly Error ResubmissionRequiresChangesRequested = Error.Conflict(
-        "Vehicle.ResubmissionRequiresChangesRequested",
-        "Solo un vehículo devuelto para cambios puede reenviarse a aprobación.");
-
     public static readonly Error ApprovalReasonRequired = Error.Validation(
         "Vehicle.ApprovalReasonRequired",
         "El motivo de la decisión es obligatorio.");
@@ -85,17 +85,9 @@ public static class VehicleErrors
         "Vehicle.ApprovalReasonTooLong",
         $"El motivo no puede superar {ApprovalReasonMaxLength} caracteres.");
 
-    public static readonly Error VehicleNotApproved = Error.Conflict(
-        "Vehicle.VehicleNotApproved",
-        "El vehículo propio debe estar aprobado antes de iniciar un servicio.");
-
-    public static readonly Error AlreadyAvailable = Error.Conflict(
-        "Vehicle.AlreadyAvailable",
-        "El vehículo ya está disponible.");
-
-    public static readonly Error AlreadyInService = Error.Conflict(
-        "Vehicle.AlreadyInService",
-        "El vehículo ya está en servicio.");
+    public static readonly Error AlreadyOperational = Error.Conflict(
+        "Vehicle.AlreadyOperational",
+        "El vehículo ya está operativo.");
 
     public static readonly Error AlreadyInMaintenance = Error.Conflict(
         "Vehicle.AlreadyInMaintenance",
@@ -108,26 +100,6 @@ public static class VehicleErrors
     public static readonly Error RetiredStatusIsFinal = Error.Conflict(
         "Vehicle.RetiredStatusIsFinal",
         "Un vehículo retirado no puede cambiar nuevamente de estado.");
-
-    public static readonly Error NotInService = Error.Conflict(
-        "Vehicle.NotInService",
-        "El vehículo no está actualmente en servicio.");
-
-    public static readonly Error MaintenanceVehicleCannotStartService = Error.Conflict(
-        "Vehicle.MaintenanceVehicleCannotStartService",
-        "Un vehículo en mantenimiento no puede iniciar un servicio.");
-
-    public static readonly Error InServiceVehicleCannotEnterMaintenance = Error.Conflict(
-        "Vehicle.InServiceVehicleCannotEnterMaintenance",
-        "Un vehículo en servicio debe finalizar su servicio antes de entrar en mantenimiento.");
-
-    public static readonly Error InServiceVehicleCannotBeRetired = Error.Conflict(
-        "Vehicle.InServiceVehicleCannotBeRetired",
-        "Un vehículo en servicio debe finalizar su servicio antes de ser retirado.");
-
-    public static readonly Error InServiceVehicleCannotBeMarkedAvailable = Error.Conflict(
-        "Vehicle.InServiceVehicleCannotBeMarkedAvailable",
-        "El servicio del vehículo debe finalizarse mediante la operación correspondiente.");
 
     public static readonly Error InvalidDocumentId = Error.Validation("Vehicle.InvalidDocumentId", "El identificador del documento no es válido.");
     public static readonly Error InvalidDocumentType = Error.Validation("Vehicle.InvalidDocumentType", "El tipo de documento no es válido.");

@@ -1,10 +1,18 @@
-namespace NexoFleet.Domain.Employees;
+using NexoFleet.Domain.Employees;
+
+namespace NexoFleet.Application.Abstractions.Persistence;
 
 public interface IEmployeeRepository
 {
-    Task<Employee?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Employee?> GetByIdAsync(
+        Guid companyId,
+        Guid id,
+        CancellationToken cancellationToken = default);
 
-    Task<Employee?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Employee?> GetByUserIdAsync(
+        Guid companyId,
+        Guid userId,
+        CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByEmployeeCodeAsync(
         Guid companyId,

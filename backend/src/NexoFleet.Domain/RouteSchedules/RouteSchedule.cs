@@ -161,6 +161,12 @@ public sealed class RouteSchedule : AggregateRoot
             return validationResult;
         }
 
+        if (effectiveUntil.HasValue &&
+            _assignments.Any(assignment => !assignment.ValidUntil.HasValue))
+        {
+            return Result.Failure(RouteScheduleErrors.OpenAssignmentMustBeClosed);
+        }
+
         if (_assignments.Any(assignment =>
                 assignment.ValidFrom < effectiveFrom ||
                 effectiveUntil.HasValue &&

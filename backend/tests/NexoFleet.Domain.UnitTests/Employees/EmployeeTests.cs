@@ -25,7 +25,6 @@ public sealed class EmployeeTests
         Assert.Equal("González", result.Value.LastName);
         Assert.Equal("CI-123456", result.Value.IdentityDocument);
         Assert.Equal("abel@nexo.test", result.Value.Email);
-        Assert.True(result.Value.UsesOwnVehicle);
         Assert.Equal(EmployeeStatus.Active, result.Value.Status);
         Assert.Equal(Now, result.Value.CreatedAtUtc);
 
@@ -61,7 +60,6 @@ public sealed class EmployeeTests
             phone,
             email,
             HireDate,
-            false,
             Now);
 
         Assert.True(result.IsFailure);
@@ -81,7 +79,6 @@ public sealed class EmployeeTests
             "+59170000000",
             "abel@nexo.test",
             DateOnly.FromDateTime(Now.UtcDateTime).AddDays(1),
-            false,
             Now);
 
         Assert.True(result.IsFailure);
@@ -132,20 +129,6 @@ public sealed class EmployeeTests
         Assert.True(result.IsSuccess);
         Assert.Null(employee.UpdatedAtUtc);
         Assert.Empty(employee.DomainEvents);
-    }
-
-    [Fact]
-    public void OwnVehicleUsageShouldOnlyUpdateWhenValueChanges()
-    {
-        var employee = CreateEmployee().Value;
-
-        var unchangedResult = employee.SetOwnVehicleUsage(true, Now.AddHours(1));
-        var changedResult = employee.SetOwnVehicleUsage(false, Now.AddHours(2));
-
-        Assert.True(unchangedResult.IsSuccess);
-        Assert.True(changedResult.IsSuccess);
-        Assert.False(employee.UsesOwnVehicle);
-        Assert.Equal(Now.AddHours(2), employee.UpdatedAtUtc);
     }
 
     [Fact]
@@ -230,6 +213,5 @@ public sealed class EmployeeTests
             " +59170000000 ",
             " ABEL@NEXO.TEST ",
             HireDate,
-            true,
             Now);
 }

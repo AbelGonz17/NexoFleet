@@ -23,7 +23,6 @@ public sealed class Employee : AggregateRoot
         string phone,
         string email,
         DateOnly hireDate,
-        bool usesOwnVehicle,
         DateTimeOffset createdAtUtc) : base(id)
     {
         CompanyId = companyId;
@@ -34,7 +33,6 @@ public sealed class Employee : AggregateRoot
         Phone = phone;
         Email = email;
         HireDate = hireDate;
-        UsesOwnVehicle = usesOwnVehicle;
         Status = EmployeeStatus.Active;
         CreatedAtUtc = createdAtUtc;
     }
@@ -61,8 +59,6 @@ public sealed class Employee : AggregateRoot
 
     public DateOnly HireDate { get; private set; }
 
-    public bool UsesOwnVehicle { get; private set; }
-
     public EmployeeStatus Status { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
@@ -79,7 +75,6 @@ public sealed class Employee : AggregateRoot
         string phone,
         string email,
         DateOnly hireDate,
-        bool usesOwnVehicle,
         DateTimeOffset createdAtUtc)
     {
         var validationResult = ValidateProfile(
@@ -109,7 +104,6 @@ public sealed class Employee : AggregateRoot
             Normalize(phone),
             NormalizeEmail(email),
             hireDate,
-            usesOwnVehicle,
             createdAtUtc);
 
         employee.RaiseDomainEvent(new EmployeeCreatedDomainEvent(
@@ -174,18 +168,6 @@ public sealed class Employee : AggregateRoot
         HireDate = hireDate;
         UpdatedAtUtc = updatedAtUtc;
 
-        return Result.Success();
-    }
-
-    public Result SetOwnVehicleUsage(bool usesOwnVehicle, DateTimeOffset updatedAtUtc)
-    {
-        if (UsesOwnVehicle == usesOwnVehicle)
-        {
-            return Result.Success();
-        }
-
-        UsesOwnVehicle = usesOwnVehicle;
-        UpdatedAtUtc = updatedAtUtc;
         return Result.Success();
     }
 

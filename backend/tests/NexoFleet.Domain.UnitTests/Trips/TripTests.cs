@@ -90,6 +90,41 @@ public sealed class TripTests
     }
 
     [Fact]
+    public void TripTimelineShouldFollowAssignmentStartAndCompletionOrder()
+    {
+        var trip = CreatePlannedTrip();
+        var employeeId = Guid.NewGuid();
+        var assignedAt = Now.AddMinutes(10);
+        trip.Assign(
+            Guid.NewGuid(),
+            employeeId,
+            null,
+            Guid.NewGuid(),
+            assignedAt);
+
+        var invalidStartResult = trip.Start(
+            employeeId,
+            assignedAt.AddSeconds(-1));
+
+        Assert.Equal(TripErrors.InvalidStartTime, invalidStartResult.Error);
+        Assert.Equal(TripStatus.Assigned, trip.Status);
+
+        var startedAt = assignedAt.AddMinutes(1);
+        Assert.True(trip.Start(employeeId, startedAt).IsSuccess);
+
+        var invalidCompletionResult = trip.Complete(
+            employeeId,
+            100,
+            "BOB",
+            startedAt);
+
+        Assert.Equal(
+            TripErrors.InvalidCompletionTime,
+            invalidCompletionResult.Error);
+        Assert.Equal(TripStatus.InProgress, trip.Status);
+    }
+
+    [Fact]
     public void IncidentAndFileShouldBeRegisteredDuringAssignedTrip()
     {
         var trip = CreatePlannedTrip();

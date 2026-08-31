@@ -172,6 +172,7 @@ public sealed class PaymentReport : AggregateRoot
         if (Status == PaymentReportStatus.Voided) return Result.Failure(PaymentErrors.VoidedStatusIsFinal);
         if (Status == PaymentReportStatus.Published) return Result.Failure(PaymentErrors.AlreadyPublished);
         if (_files.Count == 0) return Result.Failure(PaymentErrors.FileRequiredToPublish);
+        if (TotalAmount < 0) return Result.Failure(PaymentErrors.NegativeTotalNotAllowed);
 
         Status = PaymentReportStatus.Published;
         PublishedAtUtc = publishedAtUtc;

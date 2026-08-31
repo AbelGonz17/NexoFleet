@@ -1,8 +1,12 @@
-namespace NexoFleet.Domain.Companies;
+using NexoFleet.Domain.Companies;
+
+namespace NexoFleet.Application.Abstractions.Persistence;
 
 public interface ICompanyRepository
 {
-    Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Company?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByTaxIdentificationAsync(
         string taxIdentification,

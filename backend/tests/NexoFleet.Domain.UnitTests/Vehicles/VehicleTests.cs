@@ -32,7 +32,7 @@ public sealed class VehicleTests
     }
 
     [Fact]
-    public void CreateCompanyOwnedShouldNormalizeDataAndRaiseEvent()
+    public void CreateCompanyOwnedShouldBeOperationalWithoutApproval()
     {
         var id = Guid.NewGuid();
         var companyId = Guid.NewGuid();
@@ -48,9 +48,9 @@ public sealed class VehicleTests
         Assert.Equal("Toyota", result.Value.Make);
         Assert.Equal("Coaster", result.Value.Model);
         Assert.Equal("Blanco", result.Value.Color);
-        Assert.Equal(VehicleStatus.Available, result.Value.Status);
+        Assert.Equal(VehicleStatus.Operational, result.Value.Status);
         Assert.Equal(VehicleApprovalStatus.NotRequired, result.Value.ApprovalStatus);
-        Assert.True(result.Value.CanBeAssigned);
+        Assert.True(result.Value.CanOperate);
 
         var domainEvent = Assert.IsType<VehicleCreatedDomainEvent>(
             result.Value.DomainEvents.Single());
@@ -58,7 +58,7 @@ public sealed class VehicleTests
     }
 
     [Fact]
-    public void CreateEmployeeOwnedShouldRequireAndStoreOwner()
+    public void CreateEmployeeOwnedShouldRequireOwnerAndStartPending()
     {
         var ownerEmployeeId = Guid.NewGuid();
 
@@ -69,8 +69,7 @@ public sealed class VehicleTests
         Assert.Equal(ownerEmployeeId, successResult.Value.OwnerEmployeeId);
         Assert.Equal(VehicleOwnershipType.EmployeeOwned, successResult.Value.OwnershipType);
         Assert.Equal(VehicleApprovalStatus.Pending, successResult.Value.ApprovalStatus);
-        Assert.False(successResult.Value.CanBeAssigned);
-        Assert.True(failureResult.IsFailure);
+        Assert.False(successResult.Value.CanOperate);
         Assert.Equal(VehicleErrors.InvalidOwnerEmployeeId, failureResult.Error);
     }
 
@@ -96,7 +95,6 @@ public sealed class VehicleTests
             24,
             Now);
 
-        Assert.True(result.IsFailure);
         Assert.Equal(expectedErrorCode, result.Error.Code);
     }
 
@@ -117,8 +115,25 @@ public sealed class VehicleTests
             24,
             Now);
 
-        Assert.True(result.IsFailure);
         Assert.Equal(VehicleErrors.InvalidManufactureYear, result.Error);
+    }
+
+    [Fact]
+    public void CreateShouldRejectUndefinedVehicleType()
+    {
+        var result = Vehicle.CreateCompanyOwned(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "ABC-123",
+            "Toyota",
+            "Coaster",
+            2024,
+            null,
+            (VehicleType)999,
+            24,
+            Now);
+
+        Assert.Equal(VehicleErrors.InvalidVehicleType, result.Error);
     }
 
     [Fact]
@@ -129,7 +144,6 @@ public sealed class VehicleTests
 
         Assert.True(unknownCapacityResult.IsSuccess);
         Assert.Null(unknownCapacityResult.Value.PassengerCapacity);
-        Assert.True(invalidCapacityResult.IsFailure);
         Assert.Equal(VehicleErrors.InvalidPassengerCapacity, invalidCapacityResult.Error);
     }
 
@@ -168,23 +182,19 @@ public sealed class VehicleTests
     }
 
     [Fact]
-    public void EmployeeOwnedVehicleShouldRequireApprovalBeforeService()
+    public void EmployeeOwnedVehicleShouldRequireApprovalToOperate()
     {
         var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
         vehicle.ClearDomainEvents();
 
-        var invalidStartResult = vehicle.StartService(Now.AddHours(1));
-        var approveResult = vehicle.Approve(Now.AddHours(2));
-        var startResult = vehicle.StartService(Now.AddHours(3));
+        var approveResult = vehicle.Approve(Now.AddHours(1));
 
-        Assert.Equal(VehicleErrors.VehicleNotApproved, invalidStartResult.Error);
         Assert.True(approveResult.IsSuccess);
         Assert.Equal(VehicleApprovalStatus.Approved, vehicle.ApprovalStatus);
-        Assert.Equal(Now.AddHours(2), vehicle.ApprovalDecidedAtUtc);
-        Assert.True(startResult.IsSuccess);
-        Assert.Equal(VehicleStatus.InService, vehicle.Status);
+        Assert.Equal(Now.AddHours(1), vehicle.ApprovalDecidedAtUtc);
+        Assert.True(vehicle.CanOperate);
         Assert.IsType<VehicleApprovalStatusChangedDomainEvent>(
-            vehicle.DomainEvents.First());
+            vehicle.DomainEvents.Single());
     }
 
     [Fact]
@@ -199,44 +209,32 @@ public sealed class VehicleTests
     }
 
     [Fact]
-    public void RequestChangesShouldRequireReasonAndAllowResubmission()
+    public void RejectedVehicleShouldReturnToPendingAfterCorrection()
     {
         var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
+        vehicle.Reject("El vehículo no cumple los requisitos.", Now.AddHours(1));
         vehicle.ClearDomainEvents();
 
-        var missingReasonResult = vehicle.RequestChanges(" ", Now.AddHours(1));
-        var requestChangesResult = vehicle.RequestChanges(
-            " Actualizar fotografía del documento ",
+        var updateResult = vehicle.UpdateDetails(
+            "new-789",
+            vehicle.Make,
+            vehicle.Model,
+            vehicle.ManufactureYear,
+            vehicle.Color,
+            vehicle.Type,
+            vehicle.PassengerCapacity,
             Now.AddHours(2));
-        var resubmitResult = vehicle.ResubmitForApproval(Now.AddHours(3));
 
-        Assert.Equal(VehicleErrors.ApprovalReasonRequired, missingReasonResult.Error);
-        Assert.True(requestChangesResult.IsSuccess);
-        Assert.True(resubmitResult.IsSuccess);
+        Assert.True(updateResult.IsSuccess);
         Assert.Equal(VehicleApprovalStatus.Pending, vehicle.ApprovalStatus);
         Assert.Null(vehicle.ApprovalDecisionReason);
         Assert.Null(vehicle.ApprovalDecidedAtUtc);
-        Assert.Equal(2, vehicle.DomainEvents.Count);
-    }
+        Assert.False(vehicle.CanOperate);
 
-    [Fact]
-    public void RejectionShouldRequireReasonAndBeFinal()
-    {
-        var vehicle = CreateEmployeeVehicle(Guid.NewGuid()).Value;
-
-        var rejectResult = vehicle.Reject(
-            "El vehículo no cumple los requisitos de seguridad.",
-            Now.AddHours(1));
-        var approveResult = vehicle.Approve(Now.AddHours(2));
-        var repeatedRejectResult = vehicle.Reject(
-            "Rechazo repetido.",
-            Now.AddHours(3));
-
-        Assert.True(rejectResult.IsSuccess);
-        Assert.Equal(VehicleApprovalStatus.Rejected, vehicle.ApprovalStatus);
-        Assert.Equal("El vehículo no cumple los requisitos de seguridad.", vehicle.ApprovalDecisionReason);
-        Assert.Equal(VehicleErrors.AlreadyRejected, approveResult.Error);
-        Assert.Equal(VehicleErrors.AlreadyRejected, repeatedRejectResult.Error);
+        var domainEvent = Assert.IsType<VehicleApprovalStatusChangedDomainEvent>(
+            vehicle.DomainEvents.Single());
+        Assert.Equal(VehicleApprovalStatus.Rejected, domainEvent.PreviousStatus);
+        Assert.Equal(VehicleApprovalStatus.Pending, domainEvent.CurrentStatus);
     }
 
     [Fact]
@@ -258,79 +256,44 @@ public sealed class VehicleTests
 
         Assert.True(updateResult.IsSuccess);
         Assert.Equal(VehicleApprovalStatus.Pending, vehicle.ApprovalStatus);
-        Assert.False(vehicle.CanBeAssigned);
-        var domainEvent = Assert.IsType<VehicleApprovalStatusChangedDomainEvent>(
-            vehicle.DomainEvents.Single());
-        Assert.Equal(VehicleApprovalStatus.Approved, domainEvent.PreviousStatus);
-        Assert.Equal(VehicleApprovalStatus.Pending, domainEvent.CurrentStatus);
+        Assert.False(vehicle.CanOperate);
     }
 
     [Fact]
-    public void ServiceCycleShouldMoveFromAvailableToInServiceAndBack()
+    public void MaintenanceCycleShouldControlOperationalState()
     {
         var vehicle = CreateCompanyVehicle().Value;
         vehicle.ClearDomainEvents();
 
-        var startResult = vehicle.StartService(Now.AddHours(1));
-        var completeResult = vehicle.CompleteService(Now.AddHours(2));
+        var maintenanceResult = vehicle.SendToMaintenance(Now.AddHours(1));
+        var operationalResult = vehicle.ReturnToOperational(Now.AddHours(2));
 
-        Assert.True(startResult.IsSuccess);
-        Assert.True(completeResult.IsSuccess);
-        Assert.Equal(VehicleStatus.Available, vehicle.Status);
+        Assert.True(maintenanceResult.IsSuccess);
+        Assert.True(operationalResult.IsSuccess);
+        Assert.Equal(VehicleStatus.Operational, vehicle.Status);
+        Assert.True(vehicle.CanOperate);
         Assert.Equal(2, vehicle.DomainEvents.Count);
 
         var lastEvent = Assert.IsType<VehicleStatusChangedDomainEvent>(
             vehicle.DomainEvents.Last());
-        Assert.Equal(VehicleStatus.InService, lastEvent.PreviousStatus);
-        Assert.Equal(VehicleStatus.Available, lastEvent.CurrentStatus);
+        Assert.Equal(VehicleStatus.Maintenance, lastEvent.PreviousStatus);
+        Assert.Equal(VehicleStatus.Operational, lastEvent.CurrentStatus);
     }
 
     [Fact]
-    public void MaintenanceVehicleShouldNotStartServiceUntilAvailable()
-    {
-        var vehicle = CreateCompanyVehicle().Value;
-
-        var maintenanceResult = vehicle.SendToMaintenance(Now.AddHours(1));
-        var invalidStartResult = vehicle.StartService(Now.AddHours(2));
-        var availableResult = vehicle.ReturnToAvailable(Now.AddHours(3));
-        var startResult = vehicle.StartService(Now.AddHours(4));
-
-        Assert.True(maintenanceResult.IsSuccess);
-        Assert.Equal(VehicleErrors.MaintenanceVehicleCannotStartService, invalidStartResult.Error);
-        Assert.True(availableResult.IsSuccess);
-        Assert.True(startResult.IsSuccess);
-        Assert.Equal(VehicleStatus.InService, vehicle.Status);
-    }
-
-    [Fact]
-    public void InServiceVehicleShouldNotEnterMaintenanceOrBeRetired()
-    {
-        var vehicle = CreateCompanyVehicle().Value;
-        vehicle.StartService(Now.AddHours(1));
-
-        var maintenanceResult = vehicle.SendToMaintenance(Now.AddHours(2));
-        var retireResult = vehicle.Retire(Now.AddHours(3));
-
-        Assert.Equal(VehicleErrors.InServiceVehicleCannotEnterMaintenance, maintenanceResult.Error);
-        Assert.Equal(VehicleErrors.InServiceVehicleCannotBeRetired, retireResult.Error);
-        Assert.Equal(VehicleStatus.InService, vehicle.Status);
-    }
-
-    [Fact]
-    public void RetiredVehicleShouldNotChangeStatus()
+    public void RetiredVehicleShouldNotReturnToAnotherStatus()
     {
         var vehicle = CreateCompanyVehicle().Value;
 
         var retireResult = vehicle.Retire(Now.AddHours(1));
-        var serviceResult = vehicle.StartService(Now.AddHours(2));
-        var maintenanceResult = vehicle.SendToMaintenance(Now.AddHours(3));
-        var availableResult = vehicle.ReturnToAvailable(Now.AddHours(4));
+        var maintenanceResult = vehicle.SendToMaintenance(Now.AddHours(2));
+        var operationalResult = vehicle.ReturnToOperational(Now.AddHours(3));
 
         Assert.True(retireResult.IsSuccess);
         Assert.Equal(VehicleStatus.Retired, vehicle.Status);
-        Assert.Equal(VehicleErrors.RetiredStatusIsFinal, serviceResult.Error);
         Assert.Equal(VehicleErrors.RetiredStatusIsFinal, maintenanceResult.Error);
-        Assert.Equal(VehicleErrors.RetiredStatusIsFinal, availableResult.Error);
+        Assert.Equal(VehicleErrors.RetiredStatusIsFinal, operationalResult.Error);
+        Assert.False(vehicle.CanOperate);
     }
 
     private static Result<Vehicle> CreateCompanyVehicle(

@@ -212,7 +212,7 @@ public sealed class Trip : AggregateRoot
         if (vehicleId == Guid.Empty) return Result.Failure(TripErrors.InvalidVehicleId);
         if (assignedByUserId == Guid.Empty) return Result.Failure(TripErrors.InvalidUserId);
         if (_assignments.Any(assignment => assignment.Id == assignmentId)) return Result.Failure(TripErrors.AssignmentAlreadyExists);
-        if (CurrentAssignment is not null && assignedAtUtc < CurrentAssignment.AssignedAtUtc)
+        if (CurrentAssignment is not null && assignedAtUtc <= CurrentAssignment.AssignedAtUtc)
             return Result.Failure(TripErrors.AssignmentCannotRewriteHistory);
 
         CurrentAssignment?.End(assignedAtUtc);
@@ -237,6 +237,7 @@ public sealed class Trip : AggregateRoot
         var assignment = CurrentAssignment;
         if (assignment is null) return Result.Failure(TripErrors.CurrentAssignmentRequired);
         if (assignment.EmployeeId != employeeId) return Result.Failure(TripErrors.AssignedEmployeeMismatch);
+        if (startedAtUtc < assignment.AssignedAtUtc) return Result.Failure(TripErrors.InvalidStartTime);
 
         StartedAtUtc = startedAtUtc;
         ChangeStatus(TripStatus.InProgress, null, startedAtUtc);
@@ -253,7 +254,7 @@ public sealed class Trip : AggregateRoot
         var assignment = CurrentAssignment;
         if (assignment is null) return Result.Failure(TripErrors.CurrentAssignmentRequired);
         if (assignment.EmployeeId != employeeId) return Result.Failure(TripErrors.AssignedEmployeeMismatch);
-        if (StartedAtUtc.HasValue && completedAtUtc < StartedAtUtc) return Result.Failure(TripErrors.InvalidCompletionTime);
+        if (StartedAtUtc.HasValue && completedAtUtc <= StartedAtUtc) return Result.Failure(TripErrors.InvalidCompletionTime);
 
         var amountValidation = ValidateAmount(finalAmount, currency);
         if (amountValidation.IsFailure) return amountValidation;

@@ -74,6 +74,39 @@ public sealed class PaymentTests
     }
 
     [Fact]
+    public void NegativeTotalShouldBeEditableButCannotBePublished()
+    {
+        var report = CreateReport();
+        report.AddItem(
+            Guid.NewGuid(),
+            null,
+            PaymentItemEffect.Deduction,
+            "Large correction",
+            1200,
+            Now.AddMinutes(1));
+        report.AddFile(
+            Guid.NewGuid(),
+            "report.pdf",
+            "payments/report.pdf",
+            "application/pdf",
+            1000,
+            Guid.NewGuid(),
+            Now.AddMinutes(2));
+
+        Assert.Equal(-200, report.TotalAmount);
+
+        var publishResult = report.Publish(Now.AddMinutes(3));
+
+        Assert.Equal(PaymentErrors.NegativeTotalNotAllowed, publishResult.Error);
+        Assert.Equal(PaymentReportStatus.Draft, report.Status);
+
+        report.UpdateBaseAmount(1300, "BOB", Now.AddMinutes(4));
+
+        Assert.True(report.Publish(Now.AddMinutes(5)).IsSuccess);
+        Assert.Equal(100, report.TotalAmount);
+    }
+
+    [Fact]
     public void VoidedReportShouldBeFinal()
     {
         var report = CreateReport();

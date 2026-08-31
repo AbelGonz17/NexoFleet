@@ -2,8 +2,7 @@ namespace NexoFleet.Domain.Vehicles;
 
 public enum VehicleStatus
 {
-    Available,
-    InService,
+    Operational,
     Maintenance,
     Retired
 }

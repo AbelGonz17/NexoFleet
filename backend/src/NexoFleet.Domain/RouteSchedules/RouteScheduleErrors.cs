@@ -101,4 +101,8 @@ public static class RouteScheduleErrors
     public static readonly Error CurrentAssignmentNotFound = Error.NotFound(
         "RouteSchedule.CurrentAssignmentNotFound",
         "No existe una asignación vigente para finalizar.");
+
+    public static readonly Error OpenAssignmentMustBeClosed = Error.Conflict(
+        "RouteSchedule.OpenAssignmentMustBeClosed",
+        "Debe cerrar la asignación vigente antes de limitar la fecha final de la programación.");
 }

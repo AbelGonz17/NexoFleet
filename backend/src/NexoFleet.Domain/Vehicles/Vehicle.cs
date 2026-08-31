@@ -37,7 +37,7 @@ public sealed class Vehicle : AggregateRoot
         Color = color;
         Type = type;
         PassengerCapacity = passengerCapacity;
-        Status = VehicleStatus.Available;
+        Status = VehicleStatus.Operational;
         ApprovalStatus = ownershipType == VehicleOwnershipType.CompanyOwned
             ? VehicleApprovalStatus.NotRequired
             : VehicleApprovalStatus.Pending;
@@ -76,8 +76,8 @@ public sealed class Vehicle : AggregateRoot
 
     public DateTimeOffset? ApprovalDecidedAtUtc { get; private set; }
 
-    public bool CanBeAssigned =>
-        Status == VehicleStatus.Available &&
+    public bool CanOperate =>
+        Status == VehicleStatus.Operational &&
         ApprovalStatus is VehicleApprovalStatus.NotRequired or VehicleApprovalStatus.Approved;
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
@@ -162,6 +162,7 @@ public sealed class Vehicle : AggregateRoot
             model,
             manufactureYear,
             color,
+            type,
             passengerCapacity,
             updatedAtUtc);
 
@@ -196,7 +197,7 @@ public sealed class Vehicle : AggregateRoot
         UpdatedAtUtc = updatedAtUtc;
 
         if (OwnershipType == VehicleOwnershipType.EmployeeOwned &&
-            ApprovalStatus == VehicleApprovalStatus.Approved)
+            ApprovalStatus is VehicleApprovalStatus.Approved or VehicleApprovalStatus.Rejected)
         {
             ChangeApprovalStatus(
                 VehicleApprovalStatus.Pending,
@@ -219,53 +220,12 @@ public sealed class Vehicle : AggregateRoot
             return Result.Failure(VehicleErrors.AlreadyApproved);
         }
 
-        if (ApprovalStatus == VehicleApprovalStatus.Rejected)
-        {
-            return Result.Failure(VehicleErrors.AlreadyRejected);
-        }
-
         if (ApprovalStatus != VehicleApprovalStatus.Pending)
         {
             return Result.Failure(VehicleErrors.ApprovalDecisionRequiresPendingStatus);
         }
 
         ChangeApprovalStatus(VehicleApprovalStatus.Approved, null, occurredAtUtc);
-        return Result.Success();
-    }
-
-    public Result RequestChanges(string reason, DateTimeOffset occurredAtUtc)
-    {
-        var validationResult = ValidateApprovalReason(reason);
-        if (validationResult.IsFailure)
-        {
-            return validationResult;
-        }
-
-        if (ApprovalStatus == VehicleApprovalStatus.NotRequired)
-        {
-            return Result.Failure(VehicleErrors.ApprovalNotRequired);
-        }
-
-        if (ApprovalStatus != VehicleApprovalStatus.Pending)
-        {
-            return Result.Failure(VehicleErrors.ApprovalDecisionRequiresPendingStatus);
-        }
-
-        ChangeApprovalStatus(
-            VehicleApprovalStatus.ChangesRequested,
-            Normalize(reason),
-            occurredAtUtc);
-        return Result.Success();
-    }
-
-    public Result ResubmitForApproval(DateTimeOffset occurredAtUtc)
-    {
-        if (ApprovalStatus != VehicleApprovalStatus.ChangesRequested)
-        {
-            return Result.Failure(VehicleErrors.ResubmissionRequiresChangesRequested);
-        }
-
-        ChangeApprovalStatus(VehicleApprovalStatus.Pending, null, occurredAtUtc);
         return Result.Success();
     }
 
@@ -350,44 +310,6 @@ public sealed class Vehicle : AggregateRoot
         return Result.Success();
     }
 
-    public Result StartService(DateTimeOffset occurredAtUtc)
-    {
-        if (Status == VehicleStatus.Retired)
-        {
-            return Result.Failure(VehicleErrors.RetiredStatusIsFinal);
-        }
-
-        if (Status == VehicleStatus.InService)
-        {
-            return Result.Failure(VehicleErrors.AlreadyInService);
-        }
-
-        if (Status == VehicleStatus.Maintenance)
-        {
-            return Result.Failure(VehicleErrors.MaintenanceVehicleCannotStartService);
-        }
-
-        if (ApprovalStatus is not VehicleApprovalStatus.NotRequired and
-            not VehicleApprovalStatus.Approved)
-        {
-            return Result.Failure(VehicleErrors.VehicleNotApproved);
-        }
-
-        ChangeStatus(VehicleStatus.InService, occurredAtUtc);
-        return Result.Success();
-    }
-
-    public Result CompleteService(DateTimeOffset occurredAtUtc)
-    {
-        if (Status != VehicleStatus.InService)
-        {
-            return Result.Failure(VehicleErrors.NotInService);
-        }
-
-        ChangeStatus(VehicleStatus.Available, occurredAtUtc);
-        return Result.Success();
-    }
-
     public Result SendToMaintenance(DateTimeOffset occurredAtUtc)
     {
         if (Status == VehicleStatus.Retired)
@@ -400,33 +322,23 @@ public sealed class Vehicle : AggregateRoot
             return Result.Failure(VehicleErrors.AlreadyInMaintenance);
         }
 
-        if (Status == VehicleStatus.InService)
-        {
-            return Result.Failure(VehicleErrors.InServiceVehicleCannotEnterMaintenance);
-        }
-
         ChangeStatus(VehicleStatus.Maintenance, occurredAtUtc);
         return Result.Success();
     }
 
-    public Result ReturnToAvailable(DateTimeOffset occurredAtUtc)
+    public Result ReturnToOperational(DateTimeOffset occurredAtUtc)
     {
         if (Status == VehicleStatus.Retired)
         {
             return Result.Failure(VehicleErrors.RetiredStatusIsFinal);
         }
 
-        if (Status == VehicleStatus.Available)
+        if (Status == VehicleStatus.Operational)
         {
-            return Result.Failure(VehicleErrors.AlreadyAvailable);
+            return Result.Failure(VehicleErrors.AlreadyOperational);
         }
 
-        if (Status == VehicleStatus.InService)
-        {
-            return Result.Failure(VehicleErrors.InServiceVehicleCannotBeMarkedAvailable);
-        }
-
-        ChangeStatus(VehicleStatus.Available, occurredAtUtc);
+        ChangeStatus(VehicleStatus.Operational, occurredAtUtc);
         return Result.Success();
     }
 
@@ -435,11 +347,6 @@ public sealed class Vehicle : AggregateRoot
         if (Status == VehicleStatus.Retired)
         {
             return Result.Failure(VehicleErrors.AlreadyRetired);
-        }
-
-        if (Status == VehicleStatus.InService)
-        {
-            return Result.Failure(VehicleErrors.InServiceVehicleCannotBeRetired);
         }
 
         ChangeStatus(VehicleStatus.Retired, occurredAtUtc);
@@ -468,6 +375,7 @@ public sealed class Vehicle : AggregateRoot
             model,
             manufactureYear,
             color,
+            type,
             passengerCapacity,
             createdAtUtc);
 
@@ -507,6 +415,7 @@ public sealed class Vehicle : AggregateRoot
         string model,
         int manufactureYear,
         string? color,
+        VehicleType type,
         int? passengerCapacity,
         DateTimeOffset occurredAtUtc)
     {
@@ -519,6 +428,7 @@ public sealed class Vehicle : AggregateRoot
         if (string.IsNullOrWhiteSpace(model)) return Result.Failure(VehicleErrors.ModelRequired);
         if (model.Trim().Length > ModelMaxLength) return Result.Failure(VehicleErrors.ModelTooLong);
         if (color?.Trim().Length > ColorMaxLength) return Result.Failure(VehicleErrors.ColorTooLong);
+        if (!Enum.IsDefined(type)) return Result.Failure(VehicleErrors.InvalidVehicleType);
         if (manufactureYear < MinimumManufactureYear || manufactureYear > occurredAtUtc.UtcDateTime.Year + 1)
         {
             return Result.Failure(VehicleErrors.InvalidManufactureYear);
@@ -567,7 +477,6 @@ public sealed class Vehicle : AggregateRoot
         ApprovalStatus = newStatus;
         ApprovalDecisionReason = reason;
         ApprovalDecidedAtUtc = newStatus is VehicleApprovalStatus.Approved or
-            VehicleApprovalStatus.ChangesRequested or
             VehicleApprovalStatus.Rejected
                 ? occurredAtUtc
                 : null;
@@ -585,7 +494,7 @@ public sealed class Vehicle : AggregateRoot
     private void RequireNewApprovalAfterDocumentChange(DateTimeOffset occurredAtUtc)
     {
         if (OwnershipType == VehicleOwnershipType.EmployeeOwned &&
-            ApprovalStatus == VehicleApprovalStatus.Approved)
+            ApprovalStatus is VehicleApprovalStatus.Approved or VehicleApprovalStatus.Rejected)
         {
             ChangeApprovalStatus(VehicleApprovalStatus.Pending, null, occurredAtUtc);
             return;

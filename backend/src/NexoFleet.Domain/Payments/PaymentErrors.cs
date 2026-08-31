@@ -36,6 +36,7 @@ public static class PaymentErrors
     public static readonly Error CommentRequired = Error.Validation("Payment.CommentRequired", "The comment is required.");
     public static readonly Error CommentTooLong = Error.Validation("Payment.CommentTooLong", "The comment is too long.");
     public static readonly Error FileRequiredToPublish = Error.Conflict("Payment.FileRequiredToPublish", "A payment report file is required before publishing.");
+    public static readonly Error NegativeTotalNotAllowed = Error.Conflict("Payment.NegativeTotalNotAllowed", "The total amount cannot be negative when publishing the report.");
     public static readonly Error AlreadyPublished = Error.Conflict("Payment.AlreadyPublished", "The report is already published.");
     public static readonly Error VoidedStatusIsFinal = Error.Conflict("Payment.VoidedStatusIsFinal", "A voided report cannot be changed.");
     public static readonly Error VoidReasonRequired = Error.Validation("Payment.VoidReasonRequired", "A reason is required to void the report.");

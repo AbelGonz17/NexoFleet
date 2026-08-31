@@ -37,6 +37,7 @@ public static class TripErrors
     public static readonly Error CurrentAssignmentRequired = Error.Conflict("Trip.CurrentAssignmentRequired", "The trip requires a current assignment.");
     public static readonly Error AssignedEmployeeMismatch = Error.Forbidden("Trip.AssignedEmployeeMismatch", "The employee is not assigned to this trip.");
     public static readonly Error StartNotAllowed = Error.Conflict("Trip.StartNotAllowed", "Only an assigned trip can be started.");
+    public static readonly Error InvalidStartTime = Error.Validation("Trip.InvalidStartTime", "The trip cannot start before its current assignment.");
     public static readonly Error CompletionNotAllowed = Error.Conflict("Trip.CompletionNotAllowed", "Only a trip in progress can be completed.");
     public static readonly Error InvalidCompletionTime = Error.Validation("Trip.InvalidCompletionTime", "The completion time must be after the start time.");
     public static readonly Error CancellationNotAllowed = Error.Conflict("Trip.CancellationNotAllowed", "The trip cannot be cancelled in its current status.");

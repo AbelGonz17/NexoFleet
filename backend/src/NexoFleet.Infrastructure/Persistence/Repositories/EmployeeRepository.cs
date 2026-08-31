@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Domain.Employees;
 
 namespace NexoFleet.Infrastructure.Persistence.Repositories;
@@ -7,17 +8,19 @@ internal sealed class EmployeeRepository(ApplicationDbContext dbContext)
     : IEmployeeRepository
 {
     public Task<Employee?> GetByIdAsync(
+        Guid companyId,
         Guid id,
         CancellationToken cancellationToken = default) =>
         dbContext.Employees.SingleOrDefaultAsync(
-            employee => employee.Id == id,
+            employee => employee.CompanyId == companyId && employee.Id == id,
             cancellationToken);
 
     public Task<Employee?> GetByUserIdAsync(
+        Guid companyId,
         Guid userId,
         CancellationToken cancellationToken = default) =>
         dbContext.Employees.SingleOrDefaultAsync(
-            employee => employee.UserId == userId,
+            employee => employee.CompanyId == companyId && employee.UserId == userId,
             cancellationToken);
 
     public Task<bool> ExistsByEmployeeCodeAsync(

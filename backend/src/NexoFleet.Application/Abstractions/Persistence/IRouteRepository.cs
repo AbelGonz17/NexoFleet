@@ -1,8 +1,13 @@
-namespace NexoFleet.Domain.Routes;
+using NexoFleet.Domain.Routes;
+
+namespace NexoFleet.Application.Abstractions.Persistence;
 
 public interface IRouteRepository
 {
-    Task<Route?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Route?> GetByIdAsync(
+        Guid companyId,
+        Guid id,
+        CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByRouteCodeAsync(
         Guid companyId,

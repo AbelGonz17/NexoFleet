@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Domain.Routes;
 
 namespace NexoFleet.Infrastructure.Persistence.Repositories;
@@ -7,11 +8,14 @@ internal sealed class RouteRepository(ApplicationDbContext dbContext)
     : IRouteRepository
 {
     public Task<Route?> GetByIdAsync(
+        Guid companyId,
         Guid id,
         CancellationToken cancellationToken = default) =>
         dbContext.Routes
             .Include(route => route.Stops)
-            .SingleOrDefaultAsync(route => route.Id == id, cancellationToken);
+            .SingleOrDefaultAsync(
+                route => route.CompanyId == companyId && route.Id == id,
+                cancellationToken);
 
     public Task<bool> ExistsByRouteCodeAsync(
         Guid companyId,

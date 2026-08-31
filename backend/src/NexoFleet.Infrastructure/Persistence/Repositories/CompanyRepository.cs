@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Domain.Companies;
 
 namespace NexoFleet.Infrastructure.Persistence.Repositories;

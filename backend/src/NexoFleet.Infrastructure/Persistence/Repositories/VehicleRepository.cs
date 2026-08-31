@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Domain.Vehicles;
 
 namespace NexoFleet.Infrastructure.Persistence.Repositories;
@@ -7,20 +8,24 @@ internal sealed class VehicleRepository(ApplicationDbContext dbContext)
     : IVehicleRepository
 {
     public Task<Vehicle?> GetByIdAsync(
+        Guid companyId,
         Guid id,
         CancellationToken cancellationToken = default) =>
         dbContext.Vehicles
             .Include(vehicle => vehicle.Documents)
             .SingleOrDefaultAsync(
-            vehicle => vehicle.Id == id,
-            cancellationToken);
+                vehicle => vehicle.CompanyId == companyId && vehicle.Id == id,
+                cancellationToken);
 
     public async Task<IReadOnlyList<Vehicle>> GetByOwnerEmployeeIdAsync(
+        Guid companyId,
         Guid ownerEmployeeId,
         CancellationToken cancellationToken = default) =>
         await dbContext.Vehicles
             .Include(vehicle => vehicle.Documents)
-            .Where(vehicle => vehicle.OwnerEmployeeId == ownerEmployeeId)
+            .Where(vehicle =>
+                vehicle.CompanyId == companyId &&
+                vehicle.OwnerEmployeeId == ownerEmployeeId)
             .ToListAsync(cancellationToken);
 
     public Task<bool> ExistsByLicensePlateAsync(

@@ -320,6 +320,53 @@ public sealed class RouteScheduleTests
             schedule.Assignments.Single().ValidUntil);
     }
 
+    [Fact]
+    public void ConfigureRecurrenceShouldRequireClosingOpenAssignmentBeforeSettingEndDate()
+    {
+        var schedule = CreateSchedule().Value;
+        schedule.AssignResources(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            null,
+            EffectiveFrom,
+            null,
+            Now.AddHours(1));
+
+        var rejectedResult = schedule.ConfigureRecurrence(
+            schedule.Shift,
+            schedule.StartTime,
+            schedule.EndTime,
+            schedule.Days.Select(day => day.DayOfWeek),
+            schedule.EffectiveFrom,
+            new DateOnly(2026, 9, 20),
+            schedule.DefaultAmount,
+            schedule.DefaultCurrency,
+            Now.AddHours(2));
+
+        Assert.Equal(
+            RouteScheduleErrors.OpenAssignmentMustBeClosed,
+            rejectedResult.Error);
+        Assert.Equal(EffectiveUntil, schedule.EffectiveUntil);
+
+        schedule.EndCurrentAssignment(
+            new DateOnly(2026, 9, 15),
+            Now.AddHours(3));
+
+        var acceptedResult = schedule.ConfigureRecurrence(
+            schedule.Shift,
+            schedule.StartTime,
+            schedule.EndTime,
+            schedule.Days.Select(day => day.DayOfWeek),
+            schedule.EffectiveFrom,
+            new DateOnly(2026, 9, 20),
+            schedule.DefaultAmount,
+            schedule.DefaultCurrency,
+            Now.AddHours(4));
+
+        Assert.True(acceptedResult.IsSuccess);
+        Assert.Equal(new DateOnly(2026, 9, 20), schedule.EffectiveUntil);
+    }
+
     private static Result<RouteSchedule> CreateSchedule(
         Guid? id = null,
         Guid? companyId = null,

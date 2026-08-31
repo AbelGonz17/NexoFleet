@@ -1,12 +1,18 @@
 using Microsoft.EntityFrameworkCore;
+using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Domain.Clients;
 
 namespace NexoFleet.Infrastructure.Persistence.Repositories;
 
 internal sealed class ClientRepository(ApplicationDbContext dbContext) : IClientRepository
 {
-    public Task<Client?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        dbContext.Clients.SingleOrDefaultAsync(client => client.Id == id, cancellationToken);
+    public Task<Client?> GetByIdAsync(
+        Guid companyId,
+        Guid id,
+        CancellationToken cancellationToken = default) =>
+        dbContext.Clients.SingleOrDefaultAsync(
+            client => client.CompanyId == companyId && client.Id == id,
+            cancellationToken);
 
     public Task<bool> ExistsByCodeAsync(
         Guid companyId,
