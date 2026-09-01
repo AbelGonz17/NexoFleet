@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Employees.Events;
 
@@ -6,29 +5,20 @@ namespace NexoFleet.Domain.Employees;
 
 public sealed class Employee : AggregateRoot
 {
-    public const int EmployeeCodeMaxLength = 50;
-    public const int FirstNameMaxLength = 100;
-    public const int LastNameMaxLength = 100;
-    public const int IdentityDocumentMaxLength = 50;
-    public const int PhoneMaxLength = 30;
-    public const int EmailMaxLength = 256;
-
     private Employee(
         Guid id,
         Guid companyId,
-        string employeeCode,
-        string firstName,
-        string lastName,
-        string identityDocument,
-        string phone,
-        string email,
+        EmployeeCode employeeCode,
+        FullName fullName,
+        IdentityDocument identityDocument,
+        PhoneNumber phone,
+        Email email,
         DateOnly hireDate,
         DateTimeOffset createdAtUtc) : base(id)
     {
         CompanyId = companyId;
         EmployeeCode = employeeCode;
-        FirstName = firstName;
-        LastName = lastName;
+        FullName = fullName;
         IdentityDocument = identityDocument;
         Phone = phone;
         Email = email;
@@ -45,17 +35,15 @@ public sealed class Employee : AggregateRoot
 
     public Guid? UserId { get; private set; }
 
-    public string EmployeeCode { get; private set; } = string.Empty;
+    public EmployeeCode EmployeeCode { get; private set; } = null!;
 
-    public string FirstName { get; private set; } = string.Empty;
+    public FullName FullName { get; private set; } = null!;
 
-    public string LastName { get; private set; } = string.Empty;
+    public IdentityDocument IdentityDocument { get; private set; } = null!;
 
-    public string IdentityDocument { get; private set; } = string.Empty;
+    public PhoneNumber Phone { get; private set; } = null!;
 
-    public string Phone { get; private set; } = string.Empty;
-
-    public string Email { get; private set; } = string.Empty;
+    public Email Email { get; private set; } = null!;
 
     public DateOnly HireDate { get; private set; }
 
@@ -68,41 +56,43 @@ public sealed class Employee : AggregateRoot
     public static Result<Employee> Create(
         Guid id,
         Guid companyId,
-        string employeeCode,
-        string firstName,
-        string lastName,
-        string identityDocument,
-        string phone,
-        string email,
+        EmployeeCode employeeCode,
+        FullName fullName,
+        IdentityDocument identityDocument,
+        PhoneNumber phone,
+        Email email,
         DateOnly hireDate,
         DateTimeOffset createdAtUtc)
     {
-        var validationResult = ValidateProfile(
-            id,
-            companyId,
-            employeeCode,
-            firstName,
-            lastName,
-            identityDocument,
-            phone,
-            email,
-            hireDate,
-            createdAtUtc);
-
-        if (validationResult.IsFailure)
+        if (id == Guid.Empty)
         {
-            return Result<Employee>.Failure(validationResult.Error);
+            return Result<Employee>.Failure(EmployeeErrors.InvalidId);
+        }
+
+        if (companyId == Guid.Empty)
+        {
+            return Result<Employee>.Failure(EmployeeErrors.InvalidCompanyId);
+        }
+
+        ArgumentNullException.ThrowIfNull(employeeCode);
+        ArgumentNullException.ThrowIfNull(fullName);
+        ArgumentNullException.ThrowIfNull(identityDocument);
+        ArgumentNullException.ThrowIfNull(phone);
+        ArgumentNullException.ThrowIfNull(email);
+
+        if (hireDate > DateOnly.FromDateTime(createdAtUtc.UtcDateTime))
+        {
+            return Result<Employee>.Failure(EmployeeErrors.HireDateInFuture);
         }
 
         var employee = new Employee(
             id,
             companyId,
-            NormalizeIdentifier(employeeCode),
-            Normalize(firstName),
-            Normalize(lastName),
-            NormalizeIdentifier(identityDocument),
-            Normalize(phone),
-            NormalizeEmail(email),
+            employeeCode,
+            fullName,
+            identityDocument,
+            phone,
+            email,
             hireDate,
             createdAtUtc);
 
@@ -115,56 +105,40 @@ public sealed class Employee : AggregateRoot
     }
 
     public Result UpdateProfile(
-        string employeeCode,
-        string firstName,
-        string lastName,
-        string identityDocument,
-        string phone,
-        string email,
+        EmployeeCode employeeCode,
+        FullName fullName,
+        IdentityDocument identityDocument,
+        PhoneNumber phone,
+        Email email,
         DateOnly hireDate,
         DateTimeOffset updatedAtUtc)
     {
-        var validationResult = ValidateProfile(
-            Id,
-            CompanyId,
-            employeeCode,
-            firstName,
-            lastName,
-            identityDocument,
-            phone,
-            email,
-            hireDate,
-            updatedAtUtc);
+        ArgumentNullException.ThrowIfNull(employeeCode);
+        ArgumentNullException.ThrowIfNull(fullName);
+        ArgumentNullException.ThrowIfNull(identityDocument);
+        ArgumentNullException.ThrowIfNull(phone);
+        ArgumentNullException.ThrowIfNull(email);
 
-        if (validationResult.IsFailure)
+        if (hireDate > DateOnly.FromDateTime(updatedAtUtc.UtcDateTime))
         {
-            return validationResult;
+            return Result.Failure(EmployeeErrors.HireDateInFuture);
         }
 
-        var normalizedEmployeeCode = NormalizeIdentifier(employeeCode);
-        var normalizedFirstName = Normalize(firstName);
-        var normalizedLastName = Normalize(lastName);
-        var normalizedIdentityDocument = NormalizeIdentifier(identityDocument);
-        var normalizedPhone = Normalize(phone);
-        var normalizedEmail = NormalizeEmail(email);
-
-        if (EmployeeCode == normalizedEmployeeCode &&
-            FirstName == normalizedFirstName &&
-            LastName == normalizedLastName &&
-            IdentityDocument == normalizedIdentityDocument &&
-            Phone == normalizedPhone &&
-            Email == normalizedEmail &&
+        if (EmployeeCode == employeeCode &&
+            FullName == fullName &&
+            IdentityDocument == identityDocument &&
+            Phone == phone &&
+            Email == email &&
             HireDate == hireDate)
         {
             return Result.Success();
         }
 
-        EmployeeCode = normalizedEmployeeCode;
-        FirstName = normalizedFirstName;
-        LastName = normalizedLastName;
-        IdentityDocument = normalizedIdentityDocument;
-        Phone = normalizedPhone;
-        Email = normalizedEmail;
+        EmployeeCode = employeeCode;
+        FullName = fullName;
+        IdentityDocument = identityDocument;
+        Phone = phone;
+        Email = email;
         HireDate = hireDate;
         UpdatedAtUtc = updatedAtUtc;
 
@@ -248,37 +222,6 @@ public sealed class Employee : AggregateRoot
         return Result.Success();
     }
 
-    private static Result ValidateProfile(
-        Guid id,
-        Guid companyId,
-        string employeeCode,
-        string firstName,
-        string lastName,
-        string identityDocument,
-        string phone,
-        string email,
-        DateOnly hireDate,
-        DateTimeOffset occurredAtUtc)
-    {
-        if (id == Guid.Empty) return Result.Failure(EmployeeErrors.InvalidId);
-        if (companyId == Guid.Empty) return Result.Failure(EmployeeErrors.InvalidCompanyId);
-        if (string.IsNullOrWhiteSpace(employeeCode)) return Result.Failure(EmployeeErrors.EmployeeCodeRequired);
-        if (employeeCode.Trim().Length > EmployeeCodeMaxLength) return Result.Failure(EmployeeErrors.EmployeeCodeTooLong);
-        if (string.IsNullOrWhiteSpace(firstName)) return Result.Failure(EmployeeErrors.FirstNameRequired);
-        if (firstName.Trim().Length > FirstNameMaxLength) return Result.Failure(EmployeeErrors.FirstNameTooLong);
-        if (string.IsNullOrWhiteSpace(lastName)) return Result.Failure(EmployeeErrors.LastNameRequired);
-        if (lastName.Trim().Length > LastNameMaxLength) return Result.Failure(EmployeeErrors.LastNameTooLong);
-        if (string.IsNullOrWhiteSpace(identityDocument)) return Result.Failure(EmployeeErrors.IdentityDocumentRequired);
-        if (identityDocument.Trim().Length > IdentityDocumentMaxLength) return Result.Failure(EmployeeErrors.IdentityDocumentTooLong);
-        if (string.IsNullOrWhiteSpace(phone)) return Result.Failure(EmployeeErrors.PhoneRequired);
-        if (phone.Trim().Length > PhoneMaxLength) return Result.Failure(EmployeeErrors.PhoneTooLong);
-        if (string.IsNullOrWhiteSpace(email) || !MailAddress.TryCreate(email.Trim(), out _)) return Result.Failure(EmployeeErrors.EmailInvalid);
-        if (email.Trim().Length > EmailMaxLength) return Result.Failure(EmployeeErrors.EmailTooLong);
-        if (hireDate > DateOnly.FromDateTime(occurredAtUtc.UtcDateTime)) return Result.Failure(EmployeeErrors.HireDateInFuture);
-
-        return Result.Success();
-    }
-
     private void ChangeStatus(EmployeeStatus newStatus, DateTimeOffset occurredAtUtc)
     {
         var previousStatus = Status;
@@ -292,12 +235,4 @@ public sealed class Employee : AggregateRoot
             newStatus,
             occurredAtUtc));
     }
-
-    private static string Normalize(string value) => value.Trim();
-
-    private static string NormalizeIdentifier(string value) =>
-        value.Trim().ToUpperInvariant();
-
-    private static string NormalizeEmail(string value) =>
-        value.Trim().ToLowerInvariant();
 }

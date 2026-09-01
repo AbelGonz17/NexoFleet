@@ -10,7 +10,7 @@ public sealed class EmployeeTests
     private static readonly DateOnly HireDate = new(2026, 1, 15);
 
     [Fact]
-    public void CreateShouldNormalizeDataAndRaiseDomainEvent()
+    public void CreateShouldCreateEmployeeAndRaiseDomainEvent()
     {
         var id = Guid.NewGuid();
         var companyId = Guid.NewGuid();
@@ -20,11 +20,12 @@ public sealed class EmployeeTests
         Assert.True(result.IsSuccess);
         Assert.Equal(id, result.Value.Id);
         Assert.Equal(companyId, result.Value.CompanyId);
-        Assert.Equal("EMP-001", result.Value.EmployeeCode);
-        Assert.Equal("Abel", result.Value.FirstName);
-        Assert.Equal("González", result.Value.LastName);
-        Assert.Equal("CI-123456", result.Value.IdentityDocument);
-        Assert.Equal("abel@nexo.test", result.Value.Email);
+        Assert.Equal("EMP-001", result.Value.EmployeeCode.Value);
+        Assert.Equal("Abel", result.Value.FullName.FirstName);
+        Assert.Equal("González", result.Value.FullName.LastName);
+        Assert.Equal("CI-123456", result.Value.IdentityDocument.Value);
+        Assert.Equal("+59170000000", result.Value.Phone.Value);
+        Assert.Equal("abel@nexo.test", result.Value.Email.Value);
         Assert.Equal(EmployeeStatus.Active, result.Value.Status);
         Assert.Equal(Now, result.Value.CreatedAtUtc);
 
@@ -34,36 +35,40 @@ public sealed class EmployeeTests
         Assert.Equal(companyId, domainEvent.CompanyId);
     }
 
-    [Theory]
-    [InlineData("", "Abel", "González", "CI-123", "+59170000000", "abel@nexo.test", "Employee.EmployeeCodeRequired")]
-    [InlineData("EMP-001", "", "González", "CI-123", "+59170000000", "abel@nexo.test", "Employee.FirstNameRequired")]
-    [InlineData("EMP-001", "Abel", "", "CI-123", "+59170000000", "abel@nexo.test", "Employee.LastNameRequired")]
-    [InlineData("EMP-001", "Abel", "González", "", "+59170000000", "abel@nexo.test", "Employee.IdentityDocumentRequired")]
-    [InlineData("EMP-001", "Abel", "González", "CI-123", "", "abel@nexo.test", "Employee.PhoneRequired")]
-    [InlineData("EMP-001", "Abel", "González", "CI-123", "+59170000000", "invalid", "Employee.EmailInvalid")]
-    public void CreateShouldRejectInvalidProfile(
-        string employeeCode,
-        string firstName,
-        string lastName,
-        string identityDocument,
-        string phone,
-        string email,
-        string expectedErrorCode)
+    [Fact]
+    public void CreateShouldFailWhenIdIsEmpty()
     {
         var result = Employee.Create(
+            Guid.Empty,
             Guid.NewGuid(),
-            Guid.NewGuid(),
-            employeeCode,
-            firstName,
-            lastName,
-            identityDocument,
-            phone,
-            email,
+            EmployeeCode.Create("EMP-001").Value,
+            FullName.Create("Abel", "González").Value,
+            IdentityDocument.Create("CI-123").Value,
+            PhoneNumber.Create("+59170000000").Value,
+            Email.Create("abel@nexo.test").Value,
             HireDate,
             Now);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(expectedErrorCode, result.Error.Code);
+        Assert.Equal(EmployeeErrors.InvalidId, result.Error);
+    }
+
+    [Fact]
+    public void CreateShouldFailWhenCompanyIdIsEmpty()
+    {
+        var result = Employee.Create(
+            Guid.NewGuid(),
+            Guid.Empty,
+            EmployeeCode.Create("EMP-001").Value,
+            FullName.Create("Abel", "González").Value,
+            IdentityDocument.Create("CI-123").Value,
+            PhoneNumber.Create("+59170000000").Value,
+            Email.Create("abel@nexo.test").Value,
+            HireDate,
+            Now);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EmployeeErrors.InvalidCompanyId, result.Error);
     }
 
     [Fact]
@@ -72,12 +77,11 @@ public sealed class EmployeeTests
         var result = Employee.Create(
             Guid.NewGuid(),
             Guid.NewGuid(),
-            "EMP-001",
-            "Abel",
-            "González",
-            "CI-123",
-            "+59170000000",
-            "abel@nexo.test",
+            EmployeeCode.Create("EMP-001").Value,
+            FullName.Create("Abel", "González").Value,
+            IdentityDocument.Create("CI-123").Value,
+            PhoneNumber.Create("+59170000000").Value,
+            Email.Create("abel@nexo.test").Value,
             DateOnly.FromDateTime(Now.UtcDateTime).AddDays(1),
             Now);
 
@@ -86,26 +90,34 @@ public sealed class EmployeeTests
     }
 
     [Fact]
-    public void UpdateProfileShouldChangeAndNormalizeData()
+    public void UpdateProfileShouldChangeData()
     {
         var employee = CreateEmployee().Value;
         employee.ClearDomainEvents();
 
+        var newCode = EmployeeCode.Create("emp-002").Value;
+        var newName = FullName.Create("María", "Pérez").Value;
+        var newDoc = IdentityDocument.Create("ci-987").Value;
+        var newPhone = PhoneNumber.Create("+59171111111").Value;
+        var newEmail = Email.Create("MARIA@NEXO.TEST").Value;
+        var newHireDate = HireDate.AddMonths(1);
+
         var result = employee.UpdateProfile(
-            " emp-002 ",
-            " María ",
-            " Pérez ",
-            " ci-987 ",
-            " +59171111111 ",
-            " MARIA@NEXO.TEST ",
-            HireDate.AddMonths(1),
+            newCode,
+            newName,
+            newDoc,
+            newPhone,
+            newEmail,
+            newHireDate,
             Now.AddHours(1));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("EMP-002", employee.EmployeeCode);
-        Assert.Equal("María", employee.FirstName);
-        Assert.Equal("CI-987", employee.IdentityDocument);
-        Assert.Equal("maria@nexo.test", employee.Email);
+        Assert.Equal("EMP-002", employee.EmployeeCode.Value);
+        Assert.Equal("María", employee.FullName.FirstName);
+        Assert.Equal("Pérez", employee.FullName.LastName);
+        Assert.Equal("CI-987", employee.IdentityDocument.Value);
+        Assert.Equal("+59171111111", employee.Phone.Value);
+        Assert.Equal("maria@nexo.test", employee.Email.Value);
         Assert.Equal(Now.AddHours(1), employee.UpdatedAtUtc);
         Assert.Empty(employee.DomainEvents);
     }
@@ -116,13 +128,18 @@ public sealed class EmployeeTests
         var employee = CreateEmployee().Value;
         employee.ClearDomainEvents();
 
+        var sameCode = EmployeeCode.Create("EMP-001").Value;
+        var sameName = FullName.Create("Abel", "González").Value;
+        var sameDoc = IdentityDocument.Create("CI-123456").Value;
+        var samePhone = PhoneNumber.Create("+59170000000").Value;
+        var sameEmail = Email.Create("abel@nexo.test").Value;
+
         var result = employee.UpdateProfile(
-            employee.EmployeeCode,
-            employee.FirstName,
-            employee.LastName,
-            employee.IdentityDocument,
-            employee.Phone,
-            employee.Email,
+            sameCode,
+            sameName,
+            sameDoc,
+            samePhone,
+            sameEmail,
             employee.HireDate,
             Now.AddHours(1));
 
@@ -202,16 +219,23 @@ public sealed class EmployeeTests
 
     private static Result<Employee> CreateEmployee(
         Guid? id = null,
-        Guid? companyId = null) =>
-        Employee.Create(
+        Guid? companyId = null)
+    {
+        var code = EmployeeCode.Create(" emp-001 ").Value;
+        var name = FullName.Create(" Abel ", " González ").Value;
+        var doc = IdentityDocument.Create(" ci-123456 ").Value;
+        var phone = PhoneNumber.Create(" +59170000000 ").Value;
+        var email = Email.Create(" ABEL@NEXO.TEST ").Value;
+
+        return Employee.Create(
             id ?? Guid.NewGuid(),
             companyId ?? Guid.NewGuid(),
-            " emp-001 ",
-            " Abel ",
-            " González ",
-            " ci-123456 ",
-            " +59170000000 ",
-            " ABEL@NEXO.TEST ",
+            code,
+            name,
+            doc,
+            phone,
+            email,
             HireDate,
             Now);
+    }
 }

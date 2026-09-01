@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Employees;
 using NexoFleet.Infrastructure.Identity;
@@ -22,14 +23,26 @@ public sealed class EmployeeConfigurationTests
         Assert.NotNull(entity);
         Assert.Equal("employees", entity.GetTableName());
         Assert.Equal(
-            Employee.EmployeeCodeMaxLength,
+            EmployeeCode.MaxLength,
             entity.FindProperty(nameof(Employee.EmployeeCode))?.GetMaxLength());
         Assert.Equal(
-            Employee.EmailMaxLength,
+            Email.MaxLength,
             entity.FindProperty(nameof(Employee.Email))?.GetMaxLength());
         Assert.Equal(
             typeof(string),
             entity.FindProperty(nameof(Employee.Status))?.GetProviderClrType());
+
+        var fullNameComplexProperty = entity.FindComplexProperty(nameof(Employee.FullName));
+        Assert.NotNull(fullNameComplexProperty);
+        var firstNameProperty = fullNameComplexProperty.ComplexType.FindProperty(nameof(FullName.FirstName));
+        Assert.NotNull(firstNameProperty);
+        Assert.Equal(FullName.FirstNameMaxLength, firstNameProperty.GetMaxLength());
+        Assert.Equal("first_name", firstNameProperty.GetColumnName());
+
+        var lastNameProperty = fullNameComplexProperty.ComplexType.FindProperty(nameof(FullName.LastName));
+        Assert.NotNull(lastNameProperty);
+        Assert.Equal(FullName.LastNameMaxLength, lastNameProperty.GetMaxLength());
+        Assert.Equal("last_name", lastNameProperty.GetColumnName());
 
         AssertUniqueCompositeIndex(entity, nameof(Employee.CompanyId), nameof(Employee.EmployeeCode));
         AssertUniqueCompositeIndex(entity, nameof(Employee.CompanyId), nameof(Employee.IdentityDocument));

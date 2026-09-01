@@ -1,5 +1,7 @@
 using NexoFleet.Domain.Clients;
 using NexoFleet.Domain.Clients.Events;
+using NexoFleet.Domain.Common;
+using NexoFleet.Domain.Companies;
 
 namespace NexoFleet.Domain.UnitTests.Clients;
 
@@ -8,26 +10,48 @@ public sealed class ClientTests
     private static readonly DateTimeOffset Now = new(2026, 8, 28, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void CreateShouldNormalizeProfileAndRaiseEvent()
+    public void CreateShouldCreateClientAndRaiseEvent()
     {
-        var result = CreateClient();
+        var id = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+
+        var result = CreateClient(id, companyId);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("CLI-001", result.Value.ClientCode);
-        Assert.Equal("Acme Logistics", result.Value.Name);
-        Assert.Equal("NIT-123", result.Value.TaxIdentification);
-        Assert.Equal("contact@acme.test", result.Value.Email);
+        Assert.Equal(id, result.Value.Id);
+        Assert.Equal(companyId, result.Value.CompanyId);
+        Assert.Equal("CLI-001", result.Value.ClientCode.Value);
+        Assert.Equal("Acme Logistics", result.Value.Name.Value);
+        Assert.Equal("NIT-123", result.Value.TaxIdentification?.Value);
+        Assert.Equal("Jane Doe", result.Value.ContactName?.Value);
+        Assert.Equal("+59170000001", result.Value.Phone?.Value);
+        Assert.Equal("contact@acme.test", result.Value.Email?.Value);
         Assert.Equal(ClientStatus.Active, result.Value.Status);
         Assert.IsType<ClientCreatedDomainEvent>(result.Value.DomainEvents.Single());
     }
 
     [Fact]
-    public void CreateShouldRejectInvalidEmail()
+    public void CreateShouldFailWhenIdIsEmpty()
     {
-        var result = Client.Create(Guid.NewGuid(), Guid.NewGuid(), "CLI-1", "Client", null, null, null, "invalid", Now);
+        var code = ClientCode.Create("CLI-1").Value;
+        var name = ClientName.Create("Client").Value;
+
+        var result = Client.Create(Guid.Empty, Guid.NewGuid(), code, name, null, null, null, null, Now);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(ClientErrors.EmailInvalid, result.Error);
+        Assert.Equal(ClientErrors.InvalidId, result.Error);
+    }
+
+    [Fact]
+    public void CreateShouldFailWhenCompanyIdIsEmpty()
+    {
+        var code = ClientCode.Create("CLI-1").Value;
+        var name = ClientName.Create("Client").Value;
+
+        var result = Client.Create(Guid.NewGuid(), Guid.Empty, code, name, null, null, null, null, Now);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ClientErrors.InvalidCompanyId, result.Error);
     }
 
     [Fact]
@@ -36,7 +60,14 @@ public sealed class ClientTests
         var client = CreateClient().Value;
         client.ClearDomainEvents();
 
-        var result = client.UpdateProfile(client.ClientCode, client.Name, client.TaxIdentification, client.ContactName, client.Phone, client.Email, Now.AddHours(1));
+        var result = client.UpdateProfile(
+            client.ClientCode,
+            client.Name,
+            client.TaxIdentification,
+            client.ContactName,
+            client.Phone,
+            client.Email,
+            Now.AddHours(1));
 
         Assert.True(result.IsSuccess);
         Assert.Null(client.UpdatedAtUtc);
@@ -53,6 +84,24 @@ public sealed class ClientTests
         Assert.Equal(ClientStatus.Active, client.Status);
     }
 
-    private static NexoFleet.Domain.Common.Result<Client> CreateClient() => Client.Create(
-        Guid.NewGuid(), Guid.NewGuid(), " cli-001 ", " Acme Logistics ", " nit-123 ", " Jane Doe ", " +59170000001 ", " CONTACT@ACME.TEST ", Now);
+    private static Result<Client> CreateClient(Guid? id = null, Guid? companyId = null)
+    {
+        var code = ClientCode.Create(" cli-001 ").Value;
+        var name = ClientName.Create(" Acme Logistics ").Value;
+        var taxId = TaxIdentification.Create(" nit-123 ").Value;
+        var contact = ContactName.Create(" Jane Doe ").Value;
+        var phone = PhoneNumber.Create(" +59170000001 ").Value;
+        var email = Email.Create(" CONTACT@ACME.TEST ").Value;
+
+        return Client.Create(
+            id ?? Guid.NewGuid(),
+            companyId ?? Guid.NewGuid(),
+            code,
+            name,
+            taxId,
+            contact,
+            phone,
+            email,
+            Now);
+    }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Employees;
 using NexoFleet.Infrastructure.Identity;
@@ -17,27 +18,37 @@ internal sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasAlternateKey(employee => new { employee.CompanyId, employee.Id });
 
         builder.Property(employee => employee.EmployeeCode)
-            .HasMaxLength(Employee.EmployeeCodeMaxLength)
+            .HasConversion(code => code.Value, value => EmployeeCode.Create(value).Value)
+            .HasMaxLength(EmployeeCode.MaxLength)
             .IsRequired();
 
-        builder.Property(employee => employee.FirstName)
-            .HasMaxLength(Employee.FirstNameMaxLength)
-            .IsRequired();
+        builder.ComplexProperty(employee => employee.FullName, fullNameBuilder =>
+        {
+            fullNameBuilder.IsRequired();
+            fullNameBuilder.Property(name => name.FirstName)
+                .HasColumnName("first_name")
+                .HasMaxLength(FullName.FirstNameMaxLength)
+                .IsRequired();
 
-        builder.Property(employee => employee.LastName)
-            .HasMaxLength(Employee.LastNameMaxLength)
-            .IsRequired();
+            fullNameBuilder.Property(name => name.LastName)
+                .HasColumnName("last_name")
+                .HasMaxLength(FullName.LastNameMaxLength)
+                .IsRequired();
+        });
 
         builder.Property(employee => employee.IdentityDocument)
-            .HasMaxLength(Employee.IdentityDocumentMaxLength)
+            .HasConversion(doc => doc.Value, value => IdentityDocument.Create(value).Value)
+            .HasMaxLength(IdentityDocument.MaxLength)
             .IsRequired();
 
         builder.Property(employee => employee.Phone)
-            .HasMaxLength(Employee.PhoneMaxLength)
+            .HasConversion(phone => phone.Value, value => PhoneNumber.Create(value, null, null).Value)
+            .HasMaxLength(PhoneNumber.MaxLength)
             .IsRequired();
 
         builder.Property(employee => employee.Email)
-            .HasMaxLength(Employee.EmailMaxLength)
+            .HasConversion(email => email.Value, value => Email.Create(value, null, null, null).Value)
+            .HasMaxLength(Email.MaxLength)
             .IsRequired();
 
         builder.Property(employee => employee.HireDate)

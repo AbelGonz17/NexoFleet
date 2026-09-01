@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Companies;
 
 namespace NexoFleet.Infrastructure.Persistence.Configurations;
@@ -13,30 +14,40 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.HasKey(company => company.Id);
 
         builder.Property(company => company.Name)
-            .HasMaxLength(Company.NameMaxLength)
+            .HasConversion(name => name.Value, value => CompanyName.Create(value).Value)
+            .HasMaxLength(CompanyName.MaxLength)
             .IsRequired();
 
         builder.Property(company => company.TaxIdentification)
-            .HasMaxLength(Company.TaxIdentificationMaxLength)
+            .HasConversion(taxId => taxId.Value, value => TaxIdentification.Create(value).Value)
+            .HasMaxLength(TaxIdentification.MaxLength)
             .IsRequired();
 
         builder.HasIndex(company => company.TaxIdentification)
             .IsUnique();
 
-        builder.Property(company => company.Country)
-            .HasMaxLength(Company.CountryMaxLength)
-            .IsRequired();
+        builder.ComplexProperty(company => company.Address, addressBuilder =>
+        {
+            addressBuilder.IsRequired();
+            addressBuilder.Property(address => address.Country)
+                .HasColumnName("country")
+                .HasMaxLength(Address.CountryMaxLength)
+                .IsRequired();
 
-        builder.Property(company => company.City)
-            .HasMaxLength(Company.CityMaxLength)
-            .IsRequired();
+            addressBuilder.Property(address => address.City)
+                .HasColumnName("city")
+                .HasMaxLength(Address.CityMaxLength)
+                .IsRequired();
+        });
 
         builder.Property(company => company.Phone)
-            .HasMaxLength(Company.PhoneMaxLength)
+            .HasConversion(phone => phone.Value, value => PhoneNumber.Create(value, null, null).Value)
+            .HasMaxLength(PhoneNumber.MaxLength)
             .IsRequired();
 
         builder.Property(company => company.Email)
-            .HasMaxLength(Company.EmailMaxLength)
+            .HasConversion(email => email.Value, value => Email.Create(value, null, null, null).Value)
+            .HasMaxLength(Email.MaxLength)
             .IsRequired();
 
         builder.Property(company => company.Status)

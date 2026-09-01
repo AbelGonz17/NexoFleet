@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Infrastructure.Persistence;
 using NexoFleet.Infrastructure.Identity;
@@ -21,10 +22,10 @@ public sealed class CompanyConfigurationTests
         Assert.NotNull(entity);
         Assert.Equal("companies", entity.GetTableName());
         Assert.Equal(
-            Company.NameMaxLength,
+            CompanyName.MaxLength,
             entity.FindProperty(nameof(Company.Name))?.GetMaxLength());
         Assert.Equal(
-            Company.EmailMaxLength,
+            Email.MaxLength,
             entity.FindProperty(nameof(Company.Email))?.GetMaxLength());
         Assert.Equal(
             typeof(string),
@@ -33,6 +34,13 @@ public sealed class CompanyConfigurationTests
         var taxIndex = entity.GetIndexes().Single(index =>
             index.Properties.Single().Name == nameof(Company.TaxIdentification));
         Assert.True(taxIndex.IsUnique);
+
+        var addressComplexProperty = entity.FindComplexProperty(nameof(Company.Address));
+        Assert.NotNull(addressComplexProperty);
+        var countryProperty = addressComplexProperty.ComplexType.FindProperty(nameof(Address.Country));
+        Assert.NotNull(countryProperty);
+        Assert.Equal(Address.CountryMaxLength, countryProperty.GetMaxLength());
+        Assert.Equal("country", countryProperty.GetColumnName());
 
         var userEntity = context.Model.FindEntityType(typeof(ApplicationUser));
         var companyForeignKey = userEntity?.GetForeignKeys().Single(foreignKey =>

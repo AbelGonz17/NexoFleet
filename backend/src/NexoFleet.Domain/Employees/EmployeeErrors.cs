@@ -18,7 +18,7 @@ public static class EmployeeErrors
 
     public static readonly Error EmployeeCodeTooLong = Error.Validation(
         "Employee.EmployeeCodeTooLong",
-        $"El código del empleado no puede superar {Employee.EmployeeCodeMaxLength} caracteres.");
+        $"El código del empleado no puede superar {EmployeeCode.MaxLength} caracteres.");
 
     public static readonly Error FirstNameRequired = Error.Validation(
         "Employee.FirstNameRequired",
@@ -26,7 +26,7 @@ public static class EmployeeErrors
 
     public static readonly Error FirstNameTooLong = Error.Validation(
         "Employee.FirstNameTooLong",
-        $"El nombre no puede superar {Employee.FirstNameMaxLength} caracteres.");
+        $"El nombre no puede superar {FullName.FirstNameMaxLength} caracteres.");
 
     public static readonly Error LastNameRequired = Error.Validation(
         "Employee.LastNameRequired",
@@ -34,7 +34,7 @@ public static class EmployeeErrors
 
     public static readonly Error LastNameTooLong = Error.Validation(
         "Employee.LastNameTooLong",
-        $"El apellido no puede superar {Employee.LastNameMaxLength} caracteres.");
+        $"El apellido no puede superar {FullName.LastNameMaxLength} caracteres.");
 
     public static readonly Error IdentityDocumentRequired = Error.Validation(
         "Employee.IdentityDocumentRequired",
@@ -42,7 +42,7 @@ public static class EmployeeErrors
 
     public static readonly Error IdentityDocumentTooLong = Error.Validation(
         "Employee.IdentityDocumentTooLong",
-        $"El documento de identidad no puede superar {Employee.IdentityDocumentMaxLength} caracteres.");
+        $"El documento de identidad no puede superar {IdentityDocument.MaxLength} caracteres.");
 
     public static readonly Error PhoneRequired = Error.Validation(
         "Employee.PhoneRequired",
@@ -50,7 +50,7 @@ public static class EmployeeErrors
 
     public static readonly Error PhoneTooLong = Error.Validation(
         "Employee.PhoneTooLong",
-        $"El teléfono no puede superar {Employee.PhoneMaxLength} caracteres.");
+        $"El teléfono no puede superar {PhoneNumber.MaxLength} caracteres.");
 
     public static readonly Error EmailInvalid = Error.Validation(
         "Employee.EmailInvalid",
@@ -58,7 +58,7 @@ public static class EmployeeErrors
 
     public static readonly Error EmailTooLong = Error.Validation(
         "Employee.EmailTooLong",
-        $"El correo electrónico no puede superar {Employee.EmailMaxLength} caracteres.");
+        $"El correo electrónico no puede superar {Email.MaxLength} caracteres.");
 
     public static readonly Error HireDateInFuture = Error.Validation(
         "Employee.HireDateInFuture",

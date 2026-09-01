@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Companies.Events;
 
@@ -6,27 +5,18 @@ namespace NexoFleet.Domain.Companies;
 
 public sealed class Company : AggregateRoot
 {
-    public const int NameMaxLength = 200;
-    public const int TaxIdentificationMaxLength = 50;
-    public const int CountryMaxLength = 100;
-    public const int CityMaxLength = 100;
-    public const int PhoneMaxLength = 30;
-    public const int EmailMaxLength = 256;
-
     private Company(
         Guid id,
-        string name,
-        string taxIdentification,
-        string country,
-        string city,
-        string phone,
-        string email,
+        CompanyName name,
+        TaxIdentification taxIdentification,
+        Address address,
+        PhoneNumber phone,
+        Email email,
         DateTimeOffset createdAtUtc) : base(id)
     {
         Name = name;
         TaxIdentification = taxIdentification;
-        Country = country;
-        City = city;
+        Address = address;
         Phone = phone;
         Email = email;
         Status = CompanyStatus.Active;
@@ -37,17 +27,15 @@ public sealed class Company : AggregateRoot
     {
     }
 
-    public string Name { get; private set; } = string.Empty;
+    public CompanyName Name { get; private set; } = null!;
 
-    public string TaxIdentification { get; private set; } = string.Empty;
+    public TaxIdentification TaxIdentification { get; private set; } = null!;
 
-    public string Country { get; private set; } = string.Empty;
+    public Address Address { get; private set; } = null!;
 
-    public string City { get; private set; } = string.Empty;
+    public PhoneNumber Phone { get; private set; } = null!;
 
-    public string Phone { get; private set; } = string.Empty;
-
-    public string Email { get; private set; } = string.Empty;
+    public Email Email { get; private set; } = null!;
 
     public CompanyStatus Status { get; private set; }
 
@@ -57,36 +45,31 @@ public sealed class Company : AggregateRoot
 
     public static Result<Company> Create(
         Guid id,
-        string name,
-        string taxIdentification,
-        string country,
-        string city,
-        string phone,
-        string email,
+        CompanyName name,
+        TaxIdentification taxIdentification,
+        Address address,
+        PhoneNumber phone,
+        Email email,
         DateTimeOffset createdAtUtc)
     {
-        var validationResult = ValidateProfile(
-            id,
-            name,
-            taxIdentification,
-            country,
-            city,
-            phone,
-            email);
-
-        if (validationResult.IsFailure)
+        if (id == Guid.Empty)
         {
-            return Result<Company>.Failure(validationResult.Error);
+            return Result<Company>.Failure(CompanyErrors.InvalidId);
         }
+
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(taxIdentification);
+        ArgumentNullException.ThrowIfNull(address);
+        ArgumentNullException.ThrowIfNull(phone);
+        ArgumentNullException.ThrowIfNull(email);
 
         var company = new Company(
             id,
-            Normalize(name),
-            NormalizeTaxIdentification(taxIdentification),
-            Normalize(country),
-            Normalize(city),
-            Normalize(phone),
-            NormalizeEmail(email),
+            name,
+            taxIdentification,
+            address,
+            phone,
+            email,
             createdAtUtc);
 
         company.RaiseDomainEvent(new CompanyCreatedDomainEvent(company.Id, createdAtUtc));
@@ -94,51 +77,33 @@ public sealed class Company : AggregateRoot
     }
 
     public Result UpdateProfile(
-        string name,
-        string taxIdentification,
-        string country,
-        string city,
-        string phone,
-        string email,
+        CompanyName name,
+        TaxIdentification taxIdentification,
+        Address address,
+        PhoneNumber phone,
+        Email email,
         DateTimeOffset updatedAtUtc)
     {
-        var validationResult = ValidateProfile(
-            Id,
-            name,
-            taxIdentification,
-            country,
-            city,
-            phone,
-            email);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(taxIdentification);
+        ArgumentNullException.ThrowIfNull(address);
+        ArgumentNullException.ThrowIfNull(phone);
+        ArgumentNullException.ThrowIfNull(email);
 
-        if (validationResult.IsFailure)
-        {
-            return validationResult;
-        }
-
-        var normalizedName = Normalize(name);
-        var normalizedTaxIdentification = NormalizeTaxIdentification(taxIdentification);
-        var normalizedCountry = Normalize(country);
-        var normalizedCity = Normalize(city);
-        var normalizedPhone = Normalize(phone);
-        var normalizedEmail = NormalizeEmail(email);
-
-        if (Name == normalizedName &&
-            TaxIdentification == normalizedTaxIdentification &&
-            Country == normalizedCountry &&
-            City == normalizedCity &&
-            Phone == normalizedPhone &&
-            Email == normalizedEmail)
+        if (Name == name &&
+            TaxIdentification == taxIdentification &&
+            Address == address &&
+            Phone == phone &&
+            Email == email)
         {
             return Result.Success();
         }
 
-        Name = normalizedName;
-        TaxIdentification = normalizedTaxIdentification;
-        Country = normalizedCountry;
-        City = normalizedCity;
-        Phone = normalizedPhone;
-        Email = normalizedEmail;
+        Name = name;
+        TaxIdentification = taxIdentification;
+        Address = address;
+        Phone = phone;
+        Email = email;
         UpdatedAtUtc = updatedAtUtc;
 
         RaiseDomainEvent(new CompanyProfileUpdatedDomainEvent(Id, updatedAtUtc));
@@ -167,32 +132,6 @@ public sealed class Company : AggregateRoot
         return Result.Success();
     }
 
-    private static Result ValidateProfile(
-        Guid id,
-        string name,
-        string taxIdentification,
-        string country,
-        string city,
-        string phone,
-        string email)
-    {
-        if (id == Guid.Empty) return Result.Failure(CompanyErrors.InvalidId);
-        if (string.IsNullOrWhiteSpace(name)) return Result.Failure(CompanyErrors.NameRequired);
-        if (name.Trim().Length > NameMaxLength) return Result.Failure(CompanyErrors.NameTooLong);
-        if (string.IsNullOrWhiteSpace(taxIdentification)) return Result.Failure(CompanyErrors.TaxIdentificationRequired);
-        if (taxIdentification.Trim().Length > TaxIdentificationMaxLength) return Result.Failure(CompanyErrors.TaxIdentificationTooLong);
-        if (string.IsNullOrWhiteSpace(country)) return Result.Failure(CompanyErrors.CountryRequired);
-        if (country.Trim().Length > CountryMaxLength) return Result.Failure(CompanyErrors.CountryTooLong);
-        if (string.IsNullOrWhiteSpace(city)) return Result.Failure(CompanyErrors.CityRequired);
-        if (city.Trim().Length > CityMaxLength) return Result.Failure(CompanyErrors.CityTooLong);
-        if (string.IsNullOrWhiteSpace(phone)) return Result.Failure(CompanyErrors.PhoneRequired);
-        if (phone.Trim().Length > PhoneMaxLength) return Result.Failure(CompanyErrors.PhoneTooLong);
-        if (string.IsNullOrWhiteSpace(email) || !MailAddress.TryCreate(email.Trim(), out _)) return Result.Failure(CompanyErrors.EmailInvalid);
-        if (email.Trim().Length > EmailMaxLength) return Result.Failure(CompanyErrors.EmailTooLong);
-
-        return Result.Success();
-    }
-
     private void ChangeStatus(CompanyStatus newStatus, DateTimeOffset occurredAt)
     {
         var previousStatus = Status;
@@ -204,12 +143,4 @@ public sealed class Company : AggregateRoot
             newStatus,
             occurredAt));
     }
-
-    private static string Normalize(string value) => value.Trim();
-
-    private static string NormalizeTaxIdentification(string value) =>
-        value.Trim().ToUpperInvariant();
-
-    private static string NormalizeEmail(string value) =>
-        value.Trim().ToLowerInvariant();
 }

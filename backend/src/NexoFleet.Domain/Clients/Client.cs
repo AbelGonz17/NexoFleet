@@ -1,27 +1,20 @@
-using System.Net.Mail;
 using NexoFleet.Domain.Clients.Events;
 using NexoFleet.Domain.Common;
+using NexoFleet.Domain.Companies;
 
 namespace NexoFleet.Domain.Clients;
 
 public sealed class Client : AggregateRoot
 {
-    public const int ClientCodeMaxLength = 50;
-    public const int NameMaxLength = 200;
-    public const int TaxIdentificationMaxLength = 50;
-    public const int ContactNameMaxLength = 200;
-    public const int PhoneMaxLength = 30;
-    public const int EmailMaxLength = 256;
-
     private Client(
         Guid id,
         Guid companyId,
-        string clientCode,
-        string name,
-        string? taxIdentification,
-        string? contactName,
-        string? phone,
-        string? email,
+        ClientCode clientCode,
+        ClientName name,
+        TaxIdentification? taxIdentification,
+        ContactName? contactName,
+        PhoneNumber? phone,
+        Email? email,
         DateTimeOffset createdAtUtc) : base(id)
     {
         CompanyId = companyId;
@@ -40,28 +33,50 @@ public sealed class Client : AggregateRoot
     }
 
     public Guid CompanyId { get; private set; }
-    public string ClientCode { get; private set; } = string.Empty;
-    public string Name { get; private set; } = string.Empty;
-    public string? TaxIdentification { get; private set; }
-    public string? ContactName { get; private set; }
-    public string? Phone { get; private set; }
-    public string? Email { get; private set; }
+
+    public ClientCode ClientCode { get; private set; } = null!;
+
+    public ClientName Name { get; private set; } = null!;
+
+    public TaxIdentification? TaxIdentification { get; private set; }
+
+    public ContactName? ContactName { get; private set; }
+
+    public PhoneNumber? Phone { get; private set; }
+
+    public Email? Email { get; private set; }
+
     public ClientStatus Status { get; private set; }
+
     public DateTimeOffset CreatedAtUtc { get; private set; }
+
     public DateTimeOffset? UpdatedAtUtc { get; private set; }
 
     public static Result<Client> Create(
         Guid id,
         Guid companyId,
-        string clientCode,
-        string name,
-        string? taxIdentification,
-        string? contactName,
-        string? phone,
-        string? email,
+        ClientCode clientCode,
+        ClientName name,
+        TaxIdentification? taxIdentification,
+        ContactName? contactName,
+        PhoneNumber? phone,
+        Email? email,
         DateTimeOffset createdAtUtc)
     {
-        var validationResult = Validate(
+        if (id == Guid.Empty)
+        {
+            return Result<Client>.Failure(ClientErrors.InvalidId);
+        }
+
+        if (companyId == Guid.Empty)
+        {
+            return Result<Client>.Failure(ClientErrors.InvalidCompanyId);
+        }
+
+        ArgumentNullException.ThrowIfNull(clientCode);
+        ArgumentNullException.ThrowIfNull(name);
+
+        var client = new Client(
             id,
             companyId,
             clientCode,
@@ -69,21 +84,7 @@ public sealed class Client : AggregateRoot
             taxIdentification,
             contactName,
             phone,
-            email);
-        if (validationResult.IsFailure)
-        {
-            return Result<Client>.Failure(validationResult.Error);
-        }
-
-        var client = new Client(
-            id,
-            companyId,
-            NormalizeIdentifier(clientCode),
-            Normalize(name),
-            NormalizeIdentifierOptional(taxIdentification),
-            NormalizeOptional(contactName),
-            NormalizeOptional(phone),
-            NormalizeEmail(email),
+            email,
             createdAtUtc);
 
         client.RaiseDomainEvent(new ClientCreatedDomainEvent(id, companyId, createdAtUtc));
@@ -91,87 +92,57 @@ public sealed class Client : AggregateRoot
     }
 
     public Result UpdateProfile(
-        string clientCode,
-        string name,
-        string? taxIdentification,
-        string? contactName,
-        string? phone,
-        string? email,
+        ClientCode clientCode,
+        ClientName name,
+        TaxIdentification? taxIdentification,
+        ContactName? contactName,
+        PhoneNumber? phone,
+        Email? email,
         DateTimeOffset updatedAtUtc)
     {
-        var validationResult = Validate(
-            Id,
-            CompanyId,
-            clientCode,
-            name,
-            taxIdentification,
-            contactName,
-            phone,
-            email);
-        if (validationResult.IsFailure)
-        {
-            return validationResult;
-        }
+        ArgumentNullException.ThrowIfNull(clientCode);
+        ArgumentNullException.ThrowIfNull(name);
 
-        var normalizedCode = NormalizeIdentifier(clientCode);
-        var normalizedName = Normalize(name);
-        var normalizedTaxId = NormalizeIdentifierOptional(taxIdentification);
-        var normalizedContact = NormalizeOptional(contactName);
-        var normalizedPhone = NormalizeOptional(phone);
-        var normalizedEmail = NormalizeEmail(email);
-
-        if (ClientCode == normalizedCode && Name == normalizedName &&
-            TaxIdentification == normalizedTaxId && ContactName == normalizedContact &&
-            Phone == normalizedPhone && Email == normalizedEmail)
+        if (ClientCode == clientCode &&
+            Name == name &&
+            TaxIdentification == taxIdentification &&
+            ContactName == contactName &&
+            Phone == phone &&
+            Email == email)
         {
             return Result.Success();
         }
 
-        ClientCode = normalizedCode;
-        Name = normalizedName;
-        TaxIdentification = normalizedTaxId;
-        ContactName = normalizedContact;
-        Phone = normalizedPhone;
-        Email = normalizedEmail;
+        ClientCode = clientCode;
+        Name = name;
+        TaxIdentification = taxIdentification;
+        ContactName = contactName;
+        Phone = phone;
+        Email = email;
         UpdatedAtUtc = updatedAtUtc;
+
         return Result.Success();
     }
 
     public Result Activate(DateTimeOffset occurredAtUtc)
     {
-        if (Status == ClientStatus.Active) return Result.Failure(ClientErrors.AlreadyActive);
+        if (Status == ClientStatus.Active)
+        {
+            return Result.Failure(ClientErrors.AlreadyActive);
+        }
+
         ChangeStatus(ClientStatus.Active, occurredAtUtc);
         return Result.Success();
     }
 
     public Result Deactivate(DateTimeOffset occurredAtUtc)
     {
-        if (Status == ClientStatus.Inactive) return Result.Failure(ClientErrors.AlreadyInactive);
-        ChangeStatus(ClientStatus.Inactive, occurredAtUtc);
-        return Result.Success();
-    }
+        if (Status == ClientStatus.Inactive)
+        {
+            return Result.Failure(ClientErrors.AlreadyInactive);
+        }
 
-    private static Result Validate(
-        Guid id,
-        Guid companyId,
-        string clientCode,
-        string name,
-        string? taxIdentification,
-        string? contactName,
-        string? phone,
-        string? email)
-    {
-        if (id == Guid.Empty) return Result.Failure(ClientErrors.InvalidId);
-        if (companyId == Guid.Empty) return Result.Failure(ClientErrors.InvalidCompanyId);
-        if (string.IsNullOrWhiteSpace(clientCode)) return Result.Failure(ClientErrors.ClientCodeRequired);
-        if (clientCode.Trim().Length > ClientCodeMaxLength) return Result.Failure(ClientErrors.ClientCodeTooLong);
-        if (string.IsNullOrWhiteSpace(name)) return Result.Failure(ClientErrors.NameRequired);
-        if (name.Trim().Length > NameMaxLength) return Result.Failure(ClientErrors.NameTooLong);
-        if (taxIdentification?.Trim().Length > TaxIdentificationMaxLength) return Result.Failure(ClientErrors.TaxIdentificationTooLong);
-        if (contactName?.Trim().Length > ContactNameMaxLength) return Result.Failure(ClientErrors.ContactNameTooLong);
-        if (phone?.Trim().Length > PhoneMaxLength) return Result.Failure(ClientErrors.PhoneTooLong);
-        if (email?.Trim().Length > EmailMaxLength) return Result.Failure(ClientErrors.EmailTooLong);
-        if (!string.IsNullOrWhiteSpace(email) && !MailAddress.TryCreate(email.Trim(), out _)) return Result.Failure(ClientErrors.EmailInvalid);
+        ChangeStatus(ClientStatus.Inactive, occurredAtUtc);
         return Result.Success();
     }
 
@@ -182,10 +153,4 @@ public sealed class Client : AggregateRoot
         UpdatedAtUtc = occurredAtUtc;
         RaiseDomainEvent(new ClientStatusChangedDomainEvent(Id, CompanyId, previousStatus, newStatus, occurredAtUtc));
     }
-
-    private static string Normalize(string value) => value.Trim();
-    private static string NormalizeIdentifier(string value) => value.Trim().ToUpperInvariant();
-    private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    private static string? NormalizeIdentifierOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
-    private static string? NormalizeEmail(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
 }

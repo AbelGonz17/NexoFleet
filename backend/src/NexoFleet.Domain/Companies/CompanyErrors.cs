@@ -14,7 +14,7 @@ public static class CompanyErrors
 
     public static readonly Error NameTooLong = Error.Validation(
         "Company.NameTooLong",
-        $"El nombre no puede superar {Company.NameMaxLength} caracteres.");
+        $"El nombre no puede superar {CompanyName.MaxLength} caracteres.");
 
     public static readonly Error TaxIdentificationRequired = Error.Validation(
         "Company.TaxIdentificationRequired",
@@ -22,7 +22,7 @@ public static class CompanyErrors
 
     public static readonly Error TaxIdentificationTooLong = Error.Validation(
         "Company.TaxIdentificationTooLong",
-        $"La identificación fiscal no puede superar {Company.TaxIdentificationMaxLength} caracteres.");
+        $"La identificación fiscal no puede superar {TaxIdentification.MaxLength} caracteres.");
 
     public static readonly Error CountryRequired = Error.Validation(
         "Company.CountryRequired",
@@ -30,7 +30,7 @@ public static class CompanyErrors
 
     public static readonly Error CountryTooLong = Error.Validation(
         "Company.CountryTooLong",
-        $"El país no puede superar {Company.CountryMaxLength} caracteres.");
+        $"El país no puede superar {Address.CountryMaxLength} caracteres.");
 
     public static readonly Error CityRequired = Error.Validation(
         "Company.CityRequired",
@@ -38,7 +38,7 @@ public static class CompanyErrors
 
     public static readonly Error CityTooLong = Error.Validation(
         "Company.CityTooLong",
-        $"La ciudad no puede superar {Company.CityMaxLength} caracteres.");
+        $"La ciudad no puede superar {Address.CityMaxLength} caracteres.");
 
     public static readonly Error PhoneRequired = Error.Validation(
         "Company.PhoneRequired",
@@ -46,7 +46,7 @@ public static class CompanyErrors
 
     public static readonly Error PhoneTooLong = Error.Validation(
         "Company.PhoneTooLong",
-        $"El teléfono no puede superar {Company.PhoneMaxLength} caracteres.");
+        $"El teléfono no puede superar {PhoneNumber.MaxLength} caracteres.");
 
     public static readonly Error EmailInvalid = Error.Validation(
         "Company.EmailInvalid",
@@ -54,7 +54,7 @@ public static class CompanyErrors
 
     public static readonly Error EmailTooLong = Error.Validation(
         "Company.EmailTooLong",
-        $"El correo electrónico no puede superar {Company.EmailMaxLength} caracteres.");
+        $"El correo electrónico no puede superar {Email.MaxLength} caracteres.");
 
     public static readonly Error AlreadyActive = Error.Conflict(
         "Company.AlreadyActive",
@@ -64,3 +64,4 @@ public static class CompanyErrors
         "Company.AlreadySuspended",
         "La empresa ya está suspendida.");
 }
+

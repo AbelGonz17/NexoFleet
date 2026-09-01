@@ -1,6 +1,6 @@
+using NexoFleet.Domain.Common;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Companies.Events;
-using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Domain.UnitTests.Companies;
 
@@ -9,7 +9,7 @@ public sealed class CompanyTests
     private static readonly DateTimeOffset Now = new(2026, 8, 27, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void CreateShouldNormalizeDataAndRaiseDomainEvent()
+    public void CreateShouldCreateCompanyAndRaiseDomainEvent()
     {
         var id = Guid.NewGuid();
 
@@ -17,43 +17,38 @@ public sealed class CompanyTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(id, result.Value.Id);
-        Assert.Equal("Nexo Transport", result.Value.Name);
-        Assert.Equal("BO-123-ABC", result.Value.TaxIdentification);
-        Assert.Equal("contacto@nexo.test", result.Value.Email);
+        Assert.Equal("Nexo Transport", result.Value.Name.Value);
+        Assert.Equal("BO-123-ABC", result.Value.TaxIdentification.Value);
+        Assert.Equal("Bolivia", result.Value.Address.Country);
+        Assert.Equal("La Paz", result.Value.Address.City);
+        Assert.Equal("+59170000000", result.Value.Phone.Value);
+        Assert.Equal("contacto@nexo.test", result.Value.Email.Value);
         Assert.Equal(CompanyStatus.Active, result.Value.Status);
         Assert.Equal(Now, result.Value.CreatedAtUtc);
         Assert.Single(result.Value.DomainEvents);
         Assert.IsType<CompanyCreatedDomainEvent>(result.Value.DomainEvents.Single());
     }
 
-    [Theory]
-    [InlineData("", "BO-123", "Bolivia", "La Paz", "+59170000000", "contacto@nexo.test", "Company.NameRequired")]
-    [InlineData("Nexo", "", "Bolivia", "La Paz", "+59170000000", "contacto@nexo.test", "Company.TaxIdentificationRequired")]
-    [InlineData("Nexo", "BO-123", "", "La Paz", "+59170000000", "contacto@nexo.test", "Company.CountryRequired")]
-    [InlineData("Nexo", "BO-123", "Bolivia", "", "+59170000000", "contacto@nexo.test", "Company.CityRequired")]
-    [InlineData("Nexo", "BO-123", "Bolivia", "La Paz", "", "contacto@nexo.test", "Company.PhoneRequired")]
-    [InlineData("Nexo", "BO-123", "Bolivia", "La Paz", "+59170000000", "invalid", "Company.EmailInvalid")]
-    public void CreateShouldRejectInvalidProfile(
-        string name,
-        string taxIdentification,
-        string country,
-        string city,
-        string phone,
-        string email,
-        string expectedErrorCode)
+    [Fact]
+    public void CreateShouldFailWhenIdIsEmpty()
     {
+        var name = CompanyName.Create("Nexo Transport").Value;
+        var taxId = TaxIdentification.Create("BO-123-ABC").Value;
+        var address = Address.Create("Bolivia", "La Paz").Value;
+        var phone = PhoneNumber.Create("+59170000000").Value;
+        var email = Email.Create("contacto@nexo.test").Value;
+
         var result = Company.Create(
-            Guid.NewGuid(),
+            Guid.Empty,
             name,
-            taxIdentification,
-            country,
-            city,
+            taxId,
+            address,
             phone,
             email,
             Now);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(expectedErrorCode, result.Error.Code);
+        Assert.Equal(CompanyErrors.InvalidId, result.Error);
     }
 
     [Fact]
@@ -62,19 +57,28 @@ public sealed class CompanyTests
         var company = CreateCompany().Value;
         company.ClearDomainEvents();
 
+        var newName = CompanyName.Create("Nexo Fleet SRL").Value;
+        var newTaxId = TaxIdentification.Create("bo-456").Value;
+        var newAddress = Address.Create("Bolivia", "Santa Cruz").Value;
+        var newPhone = PhoneNumber.Create("+59171111111").Value;
+        var newEmail = Email.Create("ADMIN@NEXO.TEST").Value;
+
         var result = company.UpdateProfile(
-            "Nexo Fleet SRL",
-            "bo-456",
-            "Bolivia",
-            "Santa Cruz",
-            "+59171111111",
-            "ADMIN@NEXO.TEST",
+            newName,
+            newTaxId,
+            newAddress,
+            newPhone,
+            newEmail,
             Now.AddHours(1));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("BO-456", company.TaxIdentification);
-        Assert.Equal("admin@nexo.test", company.Email);
+        Assert.Equal("Nexo Fleet SRL", company.Name.Value);
+        Assert.Equal("BO-456", company.TaxIdentification.Value);
+        Assert.Equal("Santa Cruz", company.Address.City);
+        Assert.Equal("+59171111111", company.Phone.Value);
+        Assert.Equal("admin@nexo.test", company.Email.Value);
         Assert.Equal(Now.AddHours(1), company.UpdatedAtUtc);
+        Assert.Single(company.DomainEvents);
         Assert.IsType<CompanyProfileUpdatedDomainEvent>(company.DomainEvents.Single());
     }
 
@@ -84,13 +88,18 @@ public sealed class CompanyTests
         var company = CreateCompany().Value;
         company.ClearDomainEvents();
 
+        var sameName = CompanyName.Create("Nexo Transport").Value;
+        var sameTaxId = TaxIdentification.Create("BO-123-ABC").Value;
+        var sameAddress = Address.Create("Bolivia", "La Paz").Value;
+        var samePhone = PhoneNumber.Create("+59170000000").Value;
+        var sameEmail = Email.Create("contacto@nexo.test").Value;
+
         var result = company.UpdateProfile(
-            company.Name,
-            company.TaxIdentification,
-            company.Country,
-            company.City,
-            company.Phone,
-            company.Email,
+            sameName,
+            sameTaxId,
+            sameAddress,
+            samePhone,
+            sameEmail,
             Now.AddHours(1));
 
         Assert.True(result.IsSuccess);
@@ -128,14 +137,32 @@ public sealed class CompanyTests
         Assert.Equal(CompanyErrors.AlreadySuspended, result.Error);
     }
 
-    private static Result<Company> CreateCompany(Guid? id = null) =>
-        Company.Create(
+    [Fact]
+    public void ActivateShouldFailWhenCompanyIsAlreadyActive()
+    {
+        var company = CreateCompany().Value;
+
+        var result = company.Activate(Now.AddHours(1));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(CompanyErrors.AlreadyActive, result.Error);
+    }
+
+    private static Result<Company> CreateCompany(Guid? id = null)
+    {
+        var name = CompanyName.Create(" Nexo Transport ").Value;
+        var taxId = TaxIdentification.Create(" bo-123-abc ").Value;
+        var address = Address.Create(" Bolivia ", " La Paz ").Value;
+        var phone = PhoneNumber.Create(" +59170000000 ").Value;
+        var email = Email.Create(" CONTACTO@NEXO.TEST ").Value;
+
+        return Company.Create(
             id ?? Guid.NewGuid(),
-            " Nexo Transport ",
-            " bo-123-abc ",
-            " Bolivia ",
-            " La Paz ",
-            " +59170000000 ",
-            " CONTACTO@NEXO.TEST ",
+            name,
+            taxId,
+            address,
+            phone,
+            email,
             Now);
+    }
 }
