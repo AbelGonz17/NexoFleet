@@ -32,5 +32,9 @@ public interface IEmployeeRepository
         Guid? excludingEmployeeId = null,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Employee>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(Employee employee);
 }

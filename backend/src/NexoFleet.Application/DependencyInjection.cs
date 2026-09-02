@@ -1,6 +1,10 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using NexoFleet.Application.Authentication;
+using NexoFleet.Application.Clients;
+using NexoFleet.Application.Companies;
+using NexoFleet.Application.Employees;
+using NexoFleet.Application.Vehicles;
 
 namespace NexoFleet.Application;
 
@@ -10,6 +14,10 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssemblyContaining(typeof(DependencyInjection));
         services.AddScoped<AuthService>();
+        services.AddScoped<CompanyService>();
+        services.AddScoped<ClientService>();
+        services.AddScoped<EmployeeService>();
+        services.AddScoped<VehicleService>();
 
         return services;
     }

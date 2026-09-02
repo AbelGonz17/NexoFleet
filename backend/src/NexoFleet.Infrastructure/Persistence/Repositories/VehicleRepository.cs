@@ -28,6 +28,15 @@ internal sealed class VehicleRepository(ApplicationDbContext dbContext)
                 vehicle.OwnerEmployeeId == ownerEmployeeId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Vehicle>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Vehicles
+            .Include(vehicle => vehicle.Documents)
+            .Where(vehicle => vehicle.CompanyId == companyId)
+            .OrderBy(vehicle => vehicle.LicensePlate)
+            .ToListAsync(cancellationToken);
+
     public Task<bool> ExistsByLicensePlateAsync(
         Guid companyId,
         string licensePlate,

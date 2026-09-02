@@ -13,5 +13,8 @@ public interface ICompanyRepository
         Guid? excludingCompanyId = null,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Company>> ListAsync(
+        CancellationToken cancellationToken = default);
+
     void Add(Company company);
 }

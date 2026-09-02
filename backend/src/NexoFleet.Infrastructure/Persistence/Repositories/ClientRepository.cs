@@ -28,5 +28,13 @@ internal sealed class ClientRepository(ApplicationDbContext dbContext) : IClient
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Client>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Clients
+            .Where(client => client.CompanyId == companyId)
+            .OrderBy(client => client.Name)
+            .ToListAsync(cancellationToken);
+
     public void Add(Client client) => dbContext.Clients.Add(client);
 }

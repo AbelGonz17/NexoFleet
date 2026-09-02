@@ -18,4 +18,6 @@ public static class ClientErrors
     public static readonly Error EmailTooLong = Error.Validation("Client.EmailTooLong", $"The email cannot exceed {Email.MaxLength} characters.");
     public static readonly Error AlreadyActive = Error.Conflict("Client.AlreadyActive", "The client is already active.");
     public static readonly Error AlreadyInactive = Error.Conflict("Client.AlreadyInactive", "The client is already inactive.");
+    public static readonly Error NotFound = Error.NotFound("Client.NotFound", "The client was not found.");
+    public static readonly Error ClientCodeDuplicate = Error.Conflict("Client.ClientCodeDuplicate", "A client with this code already exists for this company.");
 }

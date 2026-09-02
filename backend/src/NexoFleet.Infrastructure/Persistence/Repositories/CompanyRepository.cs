@@ -28,5 +28,11 @@ internal sealed class CompanyRepository(ApplicationDbContext dbContext)
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Company>> ListAsync(
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Companies
+            .OrderBy(company => company.Name)
+            .ToListAsync(cancellationToken);
+
     public void Add(Company company) => dbContext.Companies.Add(company);
 }

@@ -91,4 +91,20 @@ public static class EmployeeErrors
     public static readonly Error UserAccountNotLinked = Error.Conflict(
         "Employee.UserAccountNotLinked",
         "El empleado no tiene una cuenta de usuario vinculada.");
+
+    public static readonly Error NotFound = Error.NotFound(
+        "Employee.NotFound",
+        "El empleado no fue encontrado.");
+
+    public static readonly Error EmployeeCodeDuplicate = Error.Conflict(
+        "Employee.EmployeeCodeDuplicate",
+        "Ya existe un empleado con el mismo código en la empresa.");
+
+    public static readonly Error IdentityDocumentDuplicate = Error.Conflict(
+        "Employee.IdentityDocumentDuplicate",
+        "Ya existe un empleado con el mismo documento de identidad en la empresa.");
+
+    public static readonly Error EmailDuplicate = Error.Conflict(
+        "Employee.EmailDuplicate",
+        "Ya existe un empleado con el mismo correo electrónico en la empresa.");
 }

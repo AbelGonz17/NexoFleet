@@ -15,5 +15,9 @@ public interface IClientRepository
         Guid? excludingClientId = null,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Client>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(Client client);
 }

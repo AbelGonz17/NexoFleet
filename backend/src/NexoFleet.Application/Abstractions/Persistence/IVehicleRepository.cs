@@ -14,6 +14,10 @@ public interface IVehicleRepository
         Guid ownerEmployeeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Vehicle>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     Task<bool> ExistsByLicensePlateAsync(
         Guid companyId,
         string licensePlate,

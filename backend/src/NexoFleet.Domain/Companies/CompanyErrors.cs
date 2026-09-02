@@ -48,6 +48,10 @@ public static class CompanyErrors
         "Company.PhoneTooLong",
         $"El teléfono no puede superar {PhoneNumber.MaxLength} caracteres.");
 
+    public static readonly Error EmailRequired = Error.Validation(
+        "Company.EmailRequired",
+        "El correo electrónico es obligatorio.");
+
     public static readonly Error EmailInvalid = Error.Validation(
         "Company.EmailInvalid",
         "El correo electrónico no es válido.");
@@ -63,5 +67,13 @@ public static class CompanyErrors
     public static readonly Error AlreadySuspended = Error.Conflict(
         "Company.AlreadySuspended",
         "La empresa ya está suspendida.");
+
+    public static readonly Error NotFound = Error.NotFound(
+        "Company.NotFound",
+        "La empresa no fue encontrada.");
+
+    public static readonly Error TaxIdentificationDuplicate = Error.Conflict(
+        "Company.TaxIdentificationDuplicate",
+        "Ya existe una empresa registrada con la misma identificación fiscal.");
 }
 

@@ -71,6 +71,14 @@ internal sealed class EmployeeRepository(ApplicationDbContext dbContext)
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Employee>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Employees
+            .Where(employee => employee.CompanyId == companyId)
+            .OrderBy(employee => employee.FullName)
+            .ToListAsync(cancellationToken);
+
     public void Add(Employee employee) => dbContext.Employees.Add(employee);
 
     private static string NormalizeIdentifier(string value) =>

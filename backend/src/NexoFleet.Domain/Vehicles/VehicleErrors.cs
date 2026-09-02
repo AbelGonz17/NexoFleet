@@ -111,4 +111,6 @@ public static class VehicleErrors
     public static readonly Error InvalidUploadedByUserId = Error.Validation("Vehicle.InvalidUploadedByUserId", "El usuario que carga el documento no es válido.");
     public static readonly Error DocumentAlreadyExists = Error.Conflict("Vehicle.DocumentAlreadyExists", "El documento ya existe.");
     public static readonly Error DocumentNotFound = Error.NotFound("Vehicle.DocumentNotFound", "El documento no fue encontrado.");
+    public static readonly Error NotFound = Error.NotFound("Vehicle.NotFound", "El vehículo no fue encontrado.");
+    public static readonly Error LicensePlateDuplicate = Error.Conflict("Vehicle.LicensePlateDuplicate", "Ya existe un vehículo registrado con la misma placa en la empresa.");
 }
