@@ -15,5 +15,9 @@ public interface IRouteRepository
         Guid? excludingRouteId = null,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Route>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(Route route);
 }

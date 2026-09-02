@@ -95,4 +95,12 @@ public static class RouteErrors
     public static readonly Error AlreadyInactive = Error.Conflict(
         "Route.AlreadyInactive",
         "La ruta ya está inactiva.");
+
+    public static readonly Error NotFound = Error.NotFound(
+        "Route.NotFound",
+        "La ruta no fue encontrada.");
+
+    public static readonly Error RouteCodeDuplicate = Error.Conflict(
+        "Route.RouteCodeDuplicate",
+        "Ya existe una ruta con el mismo código en la empresa.");
 }

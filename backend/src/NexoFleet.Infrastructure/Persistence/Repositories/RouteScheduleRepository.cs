@@ -30,6 +30,16 @@ internal sealed class RouteScheduleRepository(ApplicationDbContext dbContext)
                 schedule.RouteId == routeId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<RouteSchedule>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.RouteSchedules
+            .Include(schedule => schedule.Days)
+            .Include(schedule => schedule.Assignments)
+            .Where(schedule => schedule.CompanyId == companyId)
+            .OrderBy(schedule => schedule.StartTime)
+            .ToListAsync(cancellationToken);
+
     public void Add(RouteSchedule routeSchedule) =>
         dbContext.RouteSchedules.Add(routeSchedule);
 }

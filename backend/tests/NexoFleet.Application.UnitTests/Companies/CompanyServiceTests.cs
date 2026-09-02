@@ -168,25 +168,4 @@ public sealed class CompanyServiceTests
             new CreateCompanyRequestValidator(),
             new UpdateCompanyProfileRequestValidator());
     }
-
-    private sealed class FakeCompanyRepository : ICompanyRepository
-    {
-        public List<Company> Companies { get; } = [];
-
-        public Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Companies.SingleOrDefault(c => c.Id == id));
-
-        public Task<bool> ExistsByTaxIdentificationAsync(string taxIdentification, Guid? excludingCompanyId = null, CancellationToken cancellationToken = default)
-        {
-            var normalized = taxIdentification.Trim().ToUpperInvariant();
-            return Task.FromResult(Companies.Any(c =>
-                c.TaxIdentification.Value == normalized &&
-                (!excludingCompanyId.HasValue || c.Id != excludingCompanyId.Value)));
-        }
-
-        public Task<IReadOnlyList<Company>> ListAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<Company>>(Companies.OrderBy(c => c.Name.Value).ToArray());
-
-        public void Add(Company company) => Companies.Add(company);
-    }
 }

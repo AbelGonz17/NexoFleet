@@ -14,5 +14,9 @@ public interface IRouteScheduleRepository
         Guid routeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<RouteSchedule>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(RouteSchedule routeSchedule);
 }

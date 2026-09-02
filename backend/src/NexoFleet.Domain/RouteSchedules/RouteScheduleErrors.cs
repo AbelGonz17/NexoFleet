@@ -105,4 +105,8 @@ public static class RouteScheduleErrors
     public static readonly Error OpenAssignmentMustBeClosed = Error.Conflict(
         "RouteSchedule.OpenAssignmentMustBeClosed",
         "Debe cerrar la asignación vigente antes de limitar la fecha final de la programación.");
+
+    public static readonly Error NotFound = Error.NotFound(
+        "RouteSchedule.NotFound",
+        "La programación de ruta no fue encontrada.");
 }

@@ -158,47 +158,4 @@ public sealed class EmployeeServiceTests
             new UpdateEmployeeRequestValidator(),
             new LinkUserAccountRequestValidator());
     }
-
-    private sealed class FakeEmployeeRepository : IEmployeeRepository
-    {
-        public List<Employee> Employees { get; } = [];
-
-        public Task<Employee?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Employees.SingleOrDefault(e => e.CompanyId == companyId && e.Id == id));
-
-        public Task<Employee?> GetByUserIdAsync(Guid companyId, Guid userId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Employees.SingleOrDefault(e => e.CompanyId == companyId && e.UserId == userId));
-
-        public Task<bool> ExistsByEmployeeCodeAsync(Guid companyId, string employeeCode, Guid? excludingEmployeeId = null, CancellationToken cancellationToken = default)
-        {
-            var normalized = employeeCode.Trim().ToUpperInvariant();
-            return Task.FromResult(Employees.Any(e =>
-                e.CompanyId == companyId &&
-                e.EmployeeCode.Value == normalized &&
-                (!excludingEmployeeId.HasValue || e.Id != excludingEmployeeId.Value)));
-        }
-
-        public Task<bool> ExistsByIdentityDocumentAsync(Guid companyId, string identityDocument, Guid? excludingEmployeeId = null, CancellationToken cancellationToken = default)
-        {
-            var normalized = identityDocument.Trim().ToUpperInvariant();
-            return Task.FromResult(Employees.Any(e =>
-                e.CompanyId == companyId &&
-                e.IdentityDocument.Value == normalized &&
-                (!excludingEmployeeId.HasValue || e.Id != excludingEmployeeId.Value)));
-        }
-
-        public Task<bool> ExistsByEmailAsync(Guid companyId, string email, Guid? excludingEmployeeId = null, CancellationToken cancellationToken = default)
-        {
-            var normalized = email.Trim().ToLowerInvariant();
-            return Task.FromResult(Employees.Any(e =>
-                e.CompanyId == companyId &&
-                e.Email.Value == normalized &&
-                (!excludingEmployeeId.HasValue || e.Id != excludingEmployeeId.Value)));
-        }
-
-        public Task<IReadOnlyList<Employee>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<Employee>>(Employees.Where(e => e.CompanyId == companyId).OrderBy(e => e.FullName.ToString()).ToArray());
-
-        public void Add(Employee employee) => Employees.Add(employee);
-    }
 }

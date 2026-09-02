@@ -1,0 +1,61 @@
+using NexoFleet.Domain.Trips;
+
+namespace NexoFleet.Application.Trips.Dtos;
+
+public sealed record TripResponse(
+    Guid Id,
+    Guid CompanyId,
+    string TripNumber,
+    Guid? ClientId,
+    Guid? RouteId,
+    Guid? RouteScheduleId,
+    Guid? SubmittedByEmployeeId,
+    string Source,
+    DateOnly ServiceDate,
+    TripLocationDto Origin,
+    TripLocationDto Destination,
+    decimal? AgreedAmount,
+    decimal? FinalAmount,
+    string? Currency,
+    string Status,
+    DateTimeOffset? StartedAtUtc,
+    DateTimeOffset? CompletedAtUtc,
+    string? CancellationReason,
+    TripAssignmentResponse? CurrentAssignment,
+    IReadOnlyList<TripAssignmentResponse> Assignments,
+    IReadOnlyList<TripStatusHistoryResponse> StatusHistory,
+    IReadOnlyList<TripReviewResponse> Reviews,
+    IReadOnlyList<TripIncidentResponse> Incidents,
+    IReadOnlyList<TripFileResponse> Files,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset? UpdatedAtUtc)
+{
+    public static TripResponse FromDomain(Trip trip) =>
+        new(
+            trip.Id,
+            trip.CompanyId,
+            trip.TripNumber,
+            trip.ClientId,
+            trip.RouteId,
+            trip.RouteScheduleId,
+            trip.SubmittedByEmployeeId,
+            trip.Source.ToString(),
+            trip.ServiceDate,
+            TripLocationDto.FromDomain(trip.Origin),
+            TripLocationDto.FromDomain(trip.Destination),
+            trip.AgreedAmount,
+            trip.FinalAmount,
+            trip.Currency,
+            trip.Status.ToString(),
+            trip.StartedAtUtc,
+            trip.CompletedAtUtc,
+            trip.CancellationReason,
+            trip.CurrentAssignment is not null ? TripAssignmentResponse.FromDomain(trip.CurrentAssignment) : null,
+            trip.Assignments.OrderByDescending(a => a.AssignedAtUtc).Select(TripAssignmentResponse.FromDomain).ToArray(),
+            trip.StatusHistory.OrderBy(h => h.OccurredAtUtc).Select(TripStatusHistoryResponse.FromDomain).ToArray(),
+            trip.Reviews.OrderBy(r => r.ReviewedAtUtc).Select(TripReviewResponse.FromDomain).ToArray(),
+            trip.Incidents.OrderBy(i => i.IncidentAtUtc).Select(TripIncidentResponse.FromDomain).ToArray(),
+            trip.Files.OrderBy(f => f.UploadedAtUtc).Select(TripFileResponse.FromDomain).ToArray(),
+            trip.CreatedAtUtc,
+            trip.UpdatedAtUtc);
+}

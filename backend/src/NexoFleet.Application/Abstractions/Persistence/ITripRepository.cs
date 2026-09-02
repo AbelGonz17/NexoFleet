@@ -20,5 +20,9 @@ public interface ITripRepository
         Guid? excludingTripId = null,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Trip>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(Trip trip);
 }

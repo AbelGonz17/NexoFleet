@@ -33,5 +33,14 @@ internal sealed class RouteRepository(ApplicationDbContext dbContext)
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Route>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Routes
+            .Include(route => route.Stops)
+            .Where(route => route.CompanyId == companyId)
+            .OrderBy(route => route.Name)
+            .ToListAsync(cancellationToken);
+
     public void Add(Route route) => dbContext.Routes.Add(route);
 }

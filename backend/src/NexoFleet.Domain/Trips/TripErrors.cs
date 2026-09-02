@@ -54,4 +54,6 @@ public static class TripErrors
     public static readonly Error FileMetadataTooLong = Error.Validation("Trip.FileMetadataTooLong", "The file metadata is too long.");
     public static readonly Error ChildAlreadyExists = Error.Conflict("Trip.ChildAlreadyExists", "The child entity already exists.");
     public static readonly Error RouteRequiredForSchedule = Error.Validation("Trip.RouteRequiredForSchedule", "A scheduled trip requires a route.");
+    public static readonly Error NotFound = Error.NotFound("Trip.NotFound", "The trip was not found.");
+    public static readonly Error TripNumberDuplicate = Error.Conflict("Trip.TripNumberDuplicate", "A trip with this number already exists.");
 }

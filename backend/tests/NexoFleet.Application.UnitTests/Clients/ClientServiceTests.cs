@@ -120,26 +120,4 @@ public sealed class ClientServiceTests
             new CreateClientRequestValidator(),
             new UpdateClientRequestValidator());
     }
-
-    private sealed class FakeClientRepository : IClientRepository
-    {
-        public List<Client> Clients { get; } = [];
-
-        public Task<Client?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Clients.SingleOrDefault(c => c.CompanyId == companyId && c.Id == id));
-
-        public Task<bool> ExistsByCodeAsync(Guid companyId, string clientCode, Guid? excludingClientId = null, CancellationToken cancellationToken = default)
-        {
-            var normalized = clientCode.Trim().ToUpperInvariant();
-            return Task.FromResult(Clients.Any(c =>
-                c.CompanyId == companyId &&
-                c.ClientCode.Value == normalized &&
-                (!excludingClientId.HasValue || c.Id != excludingClientId.Value)));
-        }
-
-        public Task<IReadOnlyList<Client>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<Client>>(Clients.Where(c => c.CompanyId == companyId).OrderBy(c => c.Name.Value).ToArray());
-
-        public void Add(Client client) => Clients.Add(client);
-    }
 }

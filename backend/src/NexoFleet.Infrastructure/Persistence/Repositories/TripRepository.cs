@@ -49,5 +49,19 @@ internal sealed class TripRepository(ApplicationDbContext dbContext) : ITripRepo
         return query.AnyAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Trip>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Trips
+            .Include(trip => trip.Assignments)
+            .Include(trip => trip.StatusHistory)
+            .Include(trip => trip.Reviews)
+            .Include(trip => trip.Incidents)
+            .Include(trip => trip.Files)
+            .Where(trip => trip.CompanyId == companyId)
+            .OrderByDescending(trip => trip.ServiceDate)
+            .ThenBy(trip => trip.TripNumber)
+            .ToListAsync(cancellationToken);
+
     public void Add(Trip trip) => dbContext.Trips.Add(trip);
 }
