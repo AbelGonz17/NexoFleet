@@ -29,19 +29,15 @@ export default defineNuxtConfig({
     }
   },
 
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: process.env.NUXT_PUBLIC_API_URL || 'https://localhost:7001/api',
-        secure: false,
-        changeOrigin: true
-      }
+  routeRules: {
+    '/api/**': {
+      proxy: `${process.env.NUXT_BACKEND_URL || process.env.NUXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/**`
     }
   },
 
   runtimeConfig: {
     public: {
-      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'https://localhost:7001'
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:5000'
     }
   },
 

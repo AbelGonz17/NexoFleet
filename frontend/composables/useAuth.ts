@@ -13,7 +13,10 @@ export function useAuth() {
 
   async function fetchCurrentUser(): Promise<AuthenticatedUser | null> {
     try {
-      const data = await api.get<AuthenticatedUser>('/v1/auth/me')
+      const data = await api.request<AuthenticatedUser>('/v1/auth/me', {
+        method: 'GET',
+        suppressErrorToast: true
+      })
       store.setUser(data)
       return data
     } catch {
