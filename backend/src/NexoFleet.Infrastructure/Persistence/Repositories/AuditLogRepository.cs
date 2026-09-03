@@ -14,5 +14,13 @@ internal sealed class AuditLogRepository(ApplicationDbContext dbContext) : IAudi
             log => log.CompanyId == companyId && log.Id == id,
             cancellationToken);
 
+    public async Task<IReadOnlyList<AuditLog>> ListByCompanyIdAsync(
+        Guid? companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.AuditLogs
+            .Where(log => !companyId.HasValue || log.CompanyId == companyId.Value)
+            .OrderByDescending(log => log.OccurredAtUtc)
+            .ToListAsync(cancellationToken);
+
     public void Add(AuditLog auditLog) => dbContext.AuditLogs.Add(auditLog);
 }

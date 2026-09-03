@@ -23,4 +23,5 @@ public static class NotificationErrors
     public static readonly Error AlreadyRead = Error.Conflict("Notification.AlreadyRead", "The notification is already read.");
     public static readonly Error AlreadyArchived = Error.Conflict("Notification.AlreadyArchived", "The notification is already archived.");
     public static readonly Error ArchivedStatusIsFinal = Error.Conflict("Notification.ArchivedStatusIsFinal", "An archived notification cannot be changed.");
+    public static readonly Error NotFound = Error.NotFound("Notification.NotFound", "The notification was not found.");
 }

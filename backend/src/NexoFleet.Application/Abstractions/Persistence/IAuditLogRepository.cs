@@ -9,5 +9,9 @@ public interface IAuditLogRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<AuditLog>> ListByCompanyIdAsync(
+        Guid? companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(AuditLog auditLog);
 }

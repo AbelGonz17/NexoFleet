@@ -9,5 +9,15 @@ public interface IPaymentPeriodRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<bool> ExistsByCodeAsync(
+        Guid companyId,
+        string code,
+        Guid? excludingPeriodId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PaymentPeriod>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(PaymentPeriod period);
 }

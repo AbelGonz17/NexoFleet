@@ -21,4 +21,5 @@ public static class AuditLogErrors
     public static readonly Error DataInvalid = Error.Validation("AuditLog.DataInvalid", "The audit data must be valid JSON.");
     public static readonly Error IpAddressTooLong = Error.Validation("AuditLog.IpAddressTooLong", "The IP address is too long.");
     public static readonly Error UserAgentTooLong = Error.Validation("AuditLog.UserAgentTooLong", "The user agent is too long.");
+    public static readonly Error NotFound = Error.NotFound("AuditLog.NotFound", "The audit log was not found.");
 }

@@ -1,9 +1,12 @@
 using NexoFleet.Application.Abstractions.Context;
 using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Application.Abstractions.Time;
+using NexoFleet.Domain.Auditing;
 using NexoFleet.Domain.Clients;
 using NexoFleet.Domain.Companies;
 using NexoFleet.Domain.Employees;
+using NexoFleet.Domain.Notifications;
+using NexoFleet.Domain.Payments;
 using NexoFleet.Domain.Routes;
 using NexoFleet.Domain.RouteSchedules;
 using NexoFleet.Domain.Trips;
@@ -227,4 +230,74 @@ public sealed class FakeTripRepository : ITripRepository
         Task.FromResult<IReadOnlyList<Trip>>(Trips.Where(t => t.CompanyId == companyId).OrderByDescending(t => t.ServiceDate).ToList());
 
     public void Add(Trip trip) => Trips.Add(trip);
+}
+
+public sealed class FakePaymentPeriodRepository : IPaymentPeriodRepository
+{
+    public List<PaymentPeriod> Periods { get; } = [];
+
+    public Task<PaymentPeriod?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Periods.SingleOrDefault(p => p.CompanyId == companyId && p.Id == id));
+
+    public Task<bool> ExistsByCodeAsync(Guid companyId, string code, Guid? excludingPeriodId = null, CancellationToken cancellationToken = default)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        return Task.FromResult(Periods.Any(p =>
+            p.CompanyId == companyId &&
+            p.Code == normalized &&
+            (!excludingPeriodId.HasValue || p.Id != excludingPeriodId.Value)));
+    }
+
+    public Task<IReadOnlyList<PaymentPeriod>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PaymentPeriod>>(Periods.Where(p => p.CompanyId == companyId).OrderByDescending(p => p.StartsOn).ToList());
+
+    public void Add(PaymentPeriod period) => Periods.Add(period);
+}
+
+public sealed class FakePaymentReportRepository : IPaymentReportRepository
+{
+    public List<PaymentReport> Reports { get; } = [];
+
+    public Task<PaymentReport?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Reports.SingleOrDefault(r => r.CompanyId == companyId && r.Id == id));
+
+    public Task<PaymentReport?> GetByPeriodAndEmployeeAsync(Guid companyId, Guid periodId, Guid employeeId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Reports.SingleOrDefault(r => r.CompanyId == companyId && r.PaymentPeriodId == periodId && r.EmployeeId == employeeId));
+
+    public Task<IReadOnlyList<PaymentReport>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PaymentReport>>(Reports.Where(r => r.CompanyId == companyId).OrderByDescending(r => r.CreatedAtUtc).ToList());
+
+    public Task<IReadOnlyList<PaymentReport>> ListByPeriodIdAsync(Guid companyId, Guid periodId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PaymentReport>>(Reports.Where(r => r.CompanyId == companyId && r.PaymentPeriodId == periodId).OrderByDescending(r => r.CreatedAtUtc).ToList());
+
+    public void Add(PaymentReport report) => Reports.Add(report);
+}
+
+public sealed class FakeNotificationRepository : INotificationRepository
+{
+    public List<Notification> Notifications { get; } = [];
+
+    public Task<Notification?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Notifications.SingleOrDefault(n => n.CompanyId == companyId && n.Id == id));
+
+    public Task<IReadOnlyList<Notification>> GetByRecipientAsync(Guid companyId, Guid recipientUserId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<Notification>>(Notifications.Where(n => n.CompanyId == companyId && n.RecipientUserId == recipientUserId).OrderByDescending(n => n.CreatedAtUtc).ToList());
+
+    public Task<IReadOnlyList<Notification>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<Notification>>(Notifications.Where(n => n.CompanyId == companyId).OrderByDescending(n => n.CreatedAtUtc).ToList());
+
+    public void Add(Notification notification) => Notifications.Add(notification);
+}
+
+public sealed class FakeAuditLogRepository : IAuditLogRepository
+{
+    public List<AuditLog> Logs { get; } = [];
+
+    public Task<AuditLog?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Logs.SingleOrDefault(l => l.CompanyId == companyId && l.Id == id));
+
+    public Task<IReadOnlyList<AuditLog>> ListByCompanyIdAsync(Guid? companyId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<AuditLog>>(Logs.Where(l => !companyId.HasValue || l.CompanyId == companyId.Value).OrderByDescending(l => l.OccurredAtUtc).ToList());
+
+    public void Add(AuditLog auditLog) => Logs.Add(auditLog);
 }

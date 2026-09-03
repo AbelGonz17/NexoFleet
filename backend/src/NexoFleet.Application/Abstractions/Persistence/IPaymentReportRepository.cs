@@ -15,5 +15,14 @@ public interface IPaymentReportRepository
         Guid employeeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<PaymentReport>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PaymentReport>> ListByPeriodIdAsync(
+        Guid companyId,
+        Guid periodId,
+        CancellationToken cancellationToken = default);
+
     void Add(PaymentReport report);
 }

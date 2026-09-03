@@ -26,6 +26,23 @@ internal sealed class PaymentReportRepository(ApplicationDbContext dbContext) : 
                 report.EmployeeId == employeeId,
             cancellationToken);
 
+    public async Task<IReadOnlyList<PaymentReport>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await Query()
+            .Where(report => report.CompanyId == companyId)
+            .OrderByDescending(report => report.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<PaymentReport>> ListByPeriodIdAsync(
+        Guid companyId,
+        Guid periodId,
+        CancellationToken cancellationToken = default) =>
+        await Query()
+            .Where(report => report.CompanyId == companyId && report.PaymentPeriodId == periodId)
+            .OrderByDescending(report => report.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
     public void Add(PaymentReport report) => dbContext.PaymentReports.Add(report);
 
     private IQueryable<PaymentReport> Query() => dbContext.PaymentReports

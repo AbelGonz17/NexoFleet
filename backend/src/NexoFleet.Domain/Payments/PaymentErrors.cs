@@ -48,4 +48,8 @@ public static class PaymentErrors
     public static readonly Error FileMetadataTooLong = Error.Validation("Payment.FileMetadataTooLong", "The file metadata is too long.");
     public static readonly Error CommentAlreadyExists = Error.Conflict("Payment.CommentAlreadyExists", "The comment already exists.");
     public static readonly Error FileAlreadyExists = Error.Conflict("Payment.FileAlreadyExists", "The payment report file already exists.");
+    public static readonly Error PeriodNotFound = Error.NotFound("Payment.PeriodNotFound", "The payment period was not found.");
+    public static readonly Error PeriodCodeDuplicate = Error.Conflict("Payment.PeriodCodeDuplicate", "A payment period with this code already exists.");
+    public static readonly Error ReportNotFound = Error.NotFound("Payment.ReportNotFound", "The payment report was not found.");
+    public static readonly Error ReportAlreadyExists = Error.Conflict("Payment.ReportAlreadyExists", "A payment report already exists for this employee and period.");
 }

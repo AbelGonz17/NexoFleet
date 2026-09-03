@@ -14,5 +14,9 @@ public interface INotificationRepository
         Guid recipientUserId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Notification>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     void Add(Notification notification);
 }

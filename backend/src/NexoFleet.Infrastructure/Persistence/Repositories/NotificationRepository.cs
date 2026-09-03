@@ -25,5 +25,13 @@ internal sealed class NotificationRepository(ApplicationDbContext dbContext) : I
             .OrderByDescending(notification => notification.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Notification>> ListByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Notifications
+            .Where(notification => notification.CompanyId == companyId)
+            .OrderByDescending(notification => notification.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
     public void Add(Notification notification) => dbContext.Notifications.Add(notification);
 }
