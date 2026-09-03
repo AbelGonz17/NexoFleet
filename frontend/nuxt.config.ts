@@ -29,12 +29,6 @@ export default defineNuxtConfig({
     }
   },
 
-  routeRules: {
-    '/api/**': {
-      proxy: `${process.env.NUXT_BACKEND_URL || process.env.NUXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/**`
-    }
-  },
-
   runtimeConfig: {
     public: {
       apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:5000'
