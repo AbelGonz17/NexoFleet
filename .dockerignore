@@ -1,0 +1,13 @@
+**/.git
+**/.github
+**/.vs
+**/.vscode
+**/bin/
+**/obj/
+**/TestResults/
+**/*.user
+**/.nuxt/
+**/.output/
+**/node_modules/
+dist/
+*.log
