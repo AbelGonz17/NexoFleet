@@ -5,9 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Application.Abstractions.Authentication;
 using NexoFleet.Application.Abstractions.Context;
+using NexoFleet.Application.Abstractions.Storage;
 using NexoFleet.Application.Abstractions.Time;
 using NexoFleet.Infrastructure.Identity;
 using NexoFleet.Infrastructure.Persistence;
+using NexoFleet.Infrastructure.Storage;
 using NexoFleet.Infrastructure.Time;
 using NexoFleet.Domain.Auditing;
 using NexoFleet.Domain.Clients;
@@ -88,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<ICurrentTenant, CurrentTenant>();
+        services.AddScoped<IFileStorage, LocalFileStorage>();
 
         services.AddSingleton<IClock, SystemClock>();
 
