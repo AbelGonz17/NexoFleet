@@ -51,6 +51,11 @@ services:
       ConnectionStrings__Database: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-nexofleet};Username=${POSTGRES_USER:-nexofleet};Password=${POSTGRES_PASSWORD:-change-me}"
       Frontend__Origin: ${FRONTEND_ORIGIN:-http://localhost:3000}
       Storage__LocalPath: /app/uploads
+      BootstrapSuperAdmin__Enabled: "true"
+      BootstrapSuperAdmin__Email: ${BOOTSTRAP_ADMIN_EMAIL:-admin@nexofleet.test}
+      BootstrapSuperAdmin__Password: ${BOOTSTRAP_ADMIN_PASSWORD:-Password123!}
+      BootstrapSuperAdmin__FirstName: "Admin"
+      BootstrapSuperAdmin__LastName: "NexoFleet"
     ports:
       - "${BACKEND_PORT:-5000}:8080"
     volumes:

@@ -4,6 +4,7 @@ using NexoFleet.Api.Extensions;
 using NexoFleet.Api.Services;
 using NexoFleet.Infrastructure;
 using NexoFleet.Infrastructure.Identity;
+using NexoFleet.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,7 +50,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-await app.Services.SeedIdentityAsync(app.Configuration);
+await app.Services.InitializeDatabaseAsync(app.Configuration);
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableSwagger", true))
 {
