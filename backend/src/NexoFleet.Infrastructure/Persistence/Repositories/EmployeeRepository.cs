@@ -76,7 +76,8 @@ internal sealed class EmployeeRepository(ApplicationDbContext dbContext)
         CancellationToken cancellationToken = default) =>
         await dbContext.Employees
             .Where(employee => employee.CompanyId == companyId)
-            .OrderBy(employee => employee.FullName)
+            .OrderBy(employee => employee.FullName.LastName)
+            .ThenBy(employee => employee.FullName.FirstName)
             .ToListAsync(cancellationToken);
 
     public void Add(Employee employee) => dbContext.Employees.Add(employee);

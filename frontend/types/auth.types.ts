@@ -1,9 +1,13 @@
 export interface AuthenticatedUser {
   id: string
   email: string
+  firstName?: string
+  lastName?: string
   fullName: string
-  role: string
+  roles: string[]
+  role?: string
   companyId?: string | null
+  companyName?: string | null
 }
 
 export interface CsrfTokenResponse {

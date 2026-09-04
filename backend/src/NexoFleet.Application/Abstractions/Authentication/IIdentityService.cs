@@ -14,5 +14,18 @@ public interface IIdentityService
         Guid userId,
         CancellationToken cancellationToken = default);
 
+    Task<Result<AuthenticatedUser>> CreateUserAsync(
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        Guid? companyId,
+        string role,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AuthenticatedUser>> GetUsersByCompanyIdAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default);
+
     Task SignOutAsync();
 }

@@ -18,6 +18,12 @@ public static class DatabaseInitializer
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        if (configuration.GetValue<bool>("SkipDatabaseInitialization", false))
+        {
+            logger.LogInformation("Database initialization skipped by configuration.");
+            return;
+        }
+
         try
         {
             if (dbContext.Database.IsRelational())

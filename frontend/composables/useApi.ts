@@ -3,11 +3,14 @@ import type { ApiProblemDetails, CsrfTokenResponse } from '~/types/auth.types'
 let cachedCsrfToken: string | null = null
 
 export function useApi() {
-  const config = useRuntimeConfig()
   const toasts = useToasts()
 
-  async function getCsrfToken(): Promise<string> {
-    if (cachedCsrfToken) return cachedCsrfToken
+  function clearCsrfToken() {
+    cachedCsrfToken = null
+  }
+
+  async function getCsrfToken(forceRefresh = false): Promise<string> {
+    if (!forceRefresh && cachedCsrfToken) return cachedCsrfToken
 
     try {
       const response = await $fetch<CsrfTokenResponse>('/v1/auth/csrf', {
@@ -29,13 +32,15 @@ export function useApi() {
       query?: Record<string, any>
       headers?: Record<string, string>
       suppressErrorToast?: boolean
+      forceRefreshCsrf?: boolean
+      _isRetry?: boolean
     } = {}
   ): Promise<T> {
     const method = options.method || 'GET'
     const headers: Record<string, string> = { ...options.headers }
 
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-      const token = await getCsrfToken()
+      const token = await getCsrfToken(options.forceRefreshCsrf)
       if (token) {
         headers['X-XSRF-TOKEN'] = token
       }
@@ -52,6 +57,20 @@ export function useApi() {
       })
     } catch (err: any) {
       const problem = err.data as ApiProblemDetails | undefined
+
+      // Auto-retry if CSRF token was invalid/expired (e.g. after login/logout or session change)
+      if (
+        (problem?.code === 'Security.InvalidAntiforgeryToken' ||
+         err.status === 400 && problem?.title?.includes('Antiforgery')) &&
+        !options._isRetry
+      ) {
+        clearCsrfToken()
+        return await request<T>(endpoint, {
+          ...options,
+          _isRetry: true,
+          forceRefreshCsrf: true
+        })
+      }
 
       if (!options.suppressErrorToast) {
         if (problem?.errors) {
@@ -79,6 +98,7 @@ export function useApi() {
     put: <T>(endpoint: string, body?: any, query?: Record<string, any>) => request<T>(endpoint, { method: 'PUT', body, query }),
     delete: <T>(endpoint: string, query?: Record<string, any>) => request<T>(endpoint, { method: 'DELETE', query }),
     request,
-    getCsrfToken
+    getCsrfToken,
+    clearCsrfToken
   }
 }

@@ -13,6 +13,7 @@ public sealed class AuthServiceTests
         "Nexo",
         "Admin",
         null,
+        null,
         ["SuperAdmin"]);
 
     [Fact]
@@ -102,6 +103,21 @@ public sealed class AuthServiceTests
             ReceivedUserId = userId;
             return Task.FromResult(User);
         }
+
+        public Task<Result<AuthenticatedUser>> CreateUserAsync(
+            string email,
+            string password,
+            string firstName,
+            string lastName,
+            Guid? companyId,
+            string role,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result<AuthenticatedUser>.Success(User!));
+
+        public Task<IReadOnlyList<AuthenticatedUser>> GetUsersByCompanyIdAsync(
+            Guid companyId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AuthenticatedUser>>([]);
 
         public Task SignOutAsync() => Task.CompletedTask;
     }

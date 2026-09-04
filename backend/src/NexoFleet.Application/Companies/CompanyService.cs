@@ -1,6 +1,9 @@
 using FluentValidation;
+using NexoFleet.Application.Abstractions.Authentication;
 using NexoFleet.Application.Abstractions.Persistence;
 using NexoFleet.Application.Abstractions.Time;
+using NexoFleet.Application.Authentication;
+using NexoFleet.Application.Authorization;
 using NexoFleet.Application.Common;
 using NexoFleet.Application.Companies.Dtos;
 using NexoFleet.Domain.Common;
@@ -10,10 +13,12 @@ namespace NexoFleet.Application.Companies;
 
 public sealed class CompanyService(
     ICompanyRepository companyRepository,
+    IIdentityService identityService,
     IUnitOfWork unitOfWork,
     IClock clock,
     IValidator<CreateCompanyRequest> createValidator,
-    IValidator<UpdateCompanyProfileRequest> updateValidator)
+    IValidator<UpdateCompanyProfileRequest> updateValidator,
+    IValidator<CreateCompanyAdminRequest> createAdminValidator)
 {
     public async Task<Result<CompanyResponse>> GetByIdAsync(
         Guid id,
@@ -176,5 +181,46 @@ public sealed class CompanyService(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
+    }
+
+    public async Task<Result<AuthenticatedUser>> CreateAdminAsync(
+        Guid companyId,
+        CreateCompanyAdminRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var validationResult = await createAdminValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return Result<AuthenticatedUser>.Failure(validationResult.ToValidationError());
+        }
+
+        var company = await companyRepository.GetByIdAsync(companyId, cancellationToken);
+        if (company is null)
+        {
+            return Result<AuthenticatedUser>.Failure(CompanyErrors.NotFound);
+        }
+
+        return await identityService.CreateUserAsync(
+            request.Email,
+            request.Password,
+            request.FirstName,
+            request.LastName,
+            companyId,
+            UserRoles.Administrator,
+            cancellationToken);
+    }
+
+    public async Task<Result<IReadOnlyList<AuthenticatedUser>>> ListAdminsAsync(
+        Guid companyId,
+        CancellationToken cancellationToken = default)
+    {
+        var company = await companyRepository.GetByIdAsync(companyId, cancellationToken);
+        if (company is null)
+        {
+            return Result<IReadOnlyList<AuthenticatedUser>>.Failure(CompanyErrors.NotFound);
+        }
+
+        var users = await identityService.GetUsersByCompanyIdAsync(companyId, cancellationToken);
+        return Result<IReadOnlyList<AuthenticatedUser>>.Success(users);
     }
 }

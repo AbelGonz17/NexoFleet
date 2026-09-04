@@ -26,6 +26,7 @@ export function useAuth() {
   }
 
   async function login(credentials: { email: string; password: string; rememberMe?: boolean }) {
+    api.clearCsrfToken()
     const data = await api.post<AuthenticatedUser>('/v1/auth/login', credentials)
     store.setUser(data)
     toasts.success('¡Bienvenido!', `Has iniciado sesión como ${data.fullName}`)
@@ -37,6 +38,7 @@ export function useAuth() {
     try {
       await api.post('/v1/auth/logout')
     } finally {
+      api.clearCsrfToken()
       store.clearUser()
       toasts.info('Sesión cerrada', 'Has salido del sistema de manera segura.')
       router.push('/login')

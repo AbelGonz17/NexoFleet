@@ -1,4 +1,5 @@
 using NexoFleet.Application.Abstractions.Persistence;
+using NexoFleet.Application.Authentication;
 using NexoFleet.Application.Companies;
 using NexoFleet.Application.Companies.Dtos;
 using NexoFleet.Application.Companies.Validators;
@@ -156,16 +157,92 @@ public sealed class CompanyServiceTests
         Assert.Equal(CompanyStatus.Active, company.Status);
     }
 
+    [Fact]
+    public async Task CreateAdminAsyncWithValidRequestShouldCreateUser()
+    {
+        var repo = new FakeCompanyRepository();
+        var fakeIdentity = new FakeIdentityService();
+        var service = CreateService(repo, identity: fakeIdentity);
+
+        var company = Company.Create(
+            Guid.NewGuid(),
+            CompanyName.Create("Test Corp").Value,
+            TaxIdentification.Create("J-12345678-9").Value,
+            Address.Create("Venezuela", "Caracas").Value,
+            PhoneNumber.Create("+584121111111").Value,
+            Email.Create("corp@test.com").Value,
+            Now).Value;
+
+        repo.Companies.Add(company);
+
+        var request = new CreateCompanyAdminRequest(
+            "Carlos",
+            "Mendoza",
+            "carlos@testcorp.test",
+            "SecurePass123!");
+
+        var result = await service.CreateAdminAsync(company.Id, request);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("carlos@testcorp.test", result.Value.Email);
+        Assert.Equal(company.Id, result.Value.CompanyId);
+        Assert.Contains("Administrator", result.Value.Roles);
+    }
+
     private static CompanyService CreateService(
         FakeCompanyRepository repo,
         FakeUnitOfWork? uow = null,
-        FakeClock? clock = null)
+        FakeClock? clock = null,
+        FakeIdentityService? identity = null)
     {
         return new CompanyService(
             repo,
+            identity ?? new FakeIdentityService(),
             uow ?? new FakeUnitOfWork(),
             clock ?? new FakeClock(Now),
             new CreateCompanyRequestValidator(),
-            new UpdateCompanyProfileRequestValidator());
+            new UpdateCompanyProfileRequestValidator(),
+            new CreateCompanyAdminRequestValidator());
+    }
+
+    private sealed class FakeIdentityService : NexoFleet.Application.Abstractions.Authentication.IIdentityService
+    {
+        public Task<Result<AuthenticatedUser>> PasswordSignInAsync(
+            string email,
+            string password,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Result<AuthenticatedUser>.Failure(NexoFleet.Application.Authentication.AuthErrors.InvalidCredentials));
+
+        public Task<AuthenticatedUser?> GetUserAsync(
+            Guid userId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AuthenticatedUser?>(null);
+
+        public Task<Result<AuthenticatedUser>> CreateUserAsync(
+            string email,
+            string password,
+            string firstName,
+            string lastName,
+            Guid? companyId,
+            string role,
+            CancellationToken cancellationToken = default)
+        {
+            var user = new AuthenticatedUser(
+                Guid.NewGuid(),
+                email,
+                firstName,
+                lastName,
+                companyId,
+                "Test Company",
+                [role]);
+            return Task.FromResult(Result<AuthenticatedUser>.Success(user));
+        }
+
+        public Task<IReadOnlyList<AuthenticatedUser>> GetUsersByCompanyIdAsync(
+            Guid companyId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AuthenticatedUser>>(Array.Empty<AuthenticatedUser>());
+
+        public Task SignOutAsync() => Task.CompletedTask;
     }
 }

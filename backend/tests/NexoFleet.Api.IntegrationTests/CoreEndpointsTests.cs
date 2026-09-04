@@ -5,11 +5,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace NexoFleet.Api.IntegrationTests;
 
-public sealed class CoreEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class CoreEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public CoreEndpointsTests(WebApplicationFactory<Program> factory)
+    public CoreEndpointsTests(CustomWebApplicationFactory factory)
     {
         _client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {

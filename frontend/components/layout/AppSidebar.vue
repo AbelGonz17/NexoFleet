@@ -12,30 +12,66 @@ import {
   Bell,
   FileCheck2,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Building,
+  User
 } from 'lucide-vue-next'
+import BaseBadge from '~/components/common/BaseBadge.vue'
 
 const route = useRoute()
 const auth = useAuth()
+const permissions = usePermissions()
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Viajes Operativos', href: '/trips', icon: Navigation },
-  { name: 'Flota y Vehículos', href: '/vehicles', icon: Truck },
-  { name: 'Rutas Maestras', href: '/routes', icon: MapPin },
-  { name: 'Programaciones', href: '/schedules', icon: Calendar },
-  { name: 'Personal y Choferes', href: '/employees', icon: Users },
-  { name: 'Clientes', href: '/clients', icon: Briefcase },
-  { name: 'Liquidaciones y Pagos', href: '/payments', icon: DollarSign },
-  { name: 'Notificaciones', href: '/notifications', icon: Bell },
-  { name: 'Empresa', href: '/companies', icon: Building2 },
-  { name: 'Auditoría', href: '/audit-logs', icon: FileCheck2 }
+interface NavItem {
+  name: string
+  href: string
+  icon: any
+  roles: string[]
+}
+
+const allNavigation: NavItem[] = [
+  // Dashboard
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['SuperAdmin', 'Administrator', 'Employee'] },
+
+  // SuperAdmin Only
+  { name: 'Empresas del Sistema', href: '/companies', icon: Building2, roles: ['SuperAdmin'] },
+  { name: 'Auditoría Global', href: '/audit-logs', icon: FileCheck2, roles: ['SuperAdmin'] },
+
+  // Company Administrator
+  { name: 'Viajes Operativos', href: '/trips', icon: Navigation, roles: ['Administrator'] },
+  { name: 'Flota y Vehículos', href: '/vehicles', icon: Truck, roles: ['Administrator'] },
+  { name: 'Rutas Maestras', href: '/routes', icon: MapPin, roles: ['Administrator'] },
+  { name: 'Programaciones', href: '/schedules', icon: Calendar, roles: ['Administrator'] },
+  { name: 'Personal y Choferes', href: '/employees', icon: Users, roles: ['Administrator'] },
+  { name: 'Clientes', href: '/clients', icon: Briefcase, roles: ['Administrator'] },
+  { name: 'Liquidaciones y Pagos', href: '/payments', icon: DollarSign, roles: ['Administrator'] },
+
+  // Employee (Conductor / Operador)
+  { name: 'Mis Viajes', href: '/trips', icon: Navigation, roles: ['Employee'] },
+  { name: 'Mi Vehículo', href: '/vehicles', icon: Truck, roles: ['Employee'] },
+  { name: 'Mis Pagos', href: '/payments', icon: DollarSign, roles: ['Employee'] },
+
+  // Common
+  { name: 'Notificaciones', href: '/notifications', icon: Bell, roles: ['SuperAdmin', 'Administrator', 'Employee'] }
 ]
+
+const visibleNavigation = computed(() => {
+  return allNavigation.filter(item => {
+    return item.roles.some(r => permissions.roles.value.includes(r))
+  })
+})
 
 function isActive(href: string) {
   if (href === '/') return route.path === '/'
   return route.path.startsWith(href)
 }
+
+const roleBadgeVariant = computed(() => {
+  if (permissions.isSuperAdmin.value) return 'primary'
+  if (permissions.isCompanyAdmin.value) return 'success'
+  return 'default'
+})
 </script>
 
 <template>
@@ -54,7 +90,7 @@ function isActive(href: string) {
     <!-- Navigation Links -->
     <div class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
       <NuxtLink
-        v-for="item in navigation"
+        v-for="item in visibleNavigation"
         :key="item.name"
         :to="item.href"
         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group relative"
@@ -77,13 +113,29 @@ function isActive(href: string) {
 
     <!-- User / Session Footer -->
     <div class="p-3 border-t border-slate-800 bg-slate-950/40">
-      <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-900/80 border border-slate-800/80 mb-2">
-        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300 border border-slate-700">
-          {{ auth.user.value?.fullName?.charAt(0) || 'U' }}
+      <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 mb-2 space-y-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-xs font-black text-brand-400">
+            {{ auth.user.value?.fullName?.charAt(0) || auth.user.value?.email?.charAt(0)?.toUpperCase() || 'U' }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white truncate">{{ auth.user.value?.fullName || 'Usuario' }}</p>
+            <p class="text-[10px] text-slate-400 truncate">{{ auth.user.value?.email }}</p>
+          </div>
         </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-semibold text-white truncate">{{ auth.user.value?.fullName || 'Usuario' }}</p>
-          <p class="text-[10px] text-slate-400 truncate">{{ auth.user.value?.role || 'Operador' }}</p>
+
+        <div class="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10px]">
+          <span class="text-slate-500 font-medium">Rol activo:</span>
+          <span
+            class="px-2 py-0.5 rounded-md font-semibold"
+            :class="permissions.isSuperAdmin.value
+              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+              : permissions.isCompanyAdmin.value
+              ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'"
+          >
+            {{ permissions.roleLabel.value }}
+          </span>
         </div>
       </div>
 

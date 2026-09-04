@@ -13,11 +13,16 @@ useHead({
 })
 
 const auth = useAuth()
-const email = ref('admin@nexofleet.test')
-const password = ref('Password123!')
+const api = useApi()
+const email = ref('')
+const password = ref('')
 const rememberMe = ref(true)
 const loading = ref(false)
 const errorMessage = ref('')
+
+onMounted(() => {
+  api.clearCsrfToken()
+})
 
 async function handleSubmit() {
   if (!email.value || !password.value) {
