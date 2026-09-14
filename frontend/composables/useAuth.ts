@@ -28,6 +28,10 @@ export function useAuth() {
   async function login(credentials: { email: string; password: string; rememberMe?: boolean }) {
     api.clearCsrfToken()
     const data = await api.post<AuthenticatedUser>('/v1/auth/login', credentials)
+    
+    // Solicitar token CSRF autenticado (Token B) inmediatamente después del login
+    await api.getCsrfToken(true)
+
     store.setUser(data)
     toasts.success('¡Bienvenido!', `Has iniciado sesión como ${data.fullName}`)
     router.push('/')

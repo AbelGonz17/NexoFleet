@@ -20,8 +20,10 @@ const rememberMe = ref(true)
 const loading = ref(false)
 const errorMessage = ref('')
 
-onMounted(() => {
+onMounted(async () => {
   api.clearCsrfToken()
+  // Momento 1: Obtener token CSRF anónimo al entrar a la página
+  await api.getCsrfToken()
 })
 
 async function handleSubmit() {
