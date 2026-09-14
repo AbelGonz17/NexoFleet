@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IPaymentPeriodRepository, PaymentPeriodRepository>();
         services.AddScoped<IPaymentReportRepository, PaymentReportRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IDashboardQueries, DashboardQueries>();
 
         services
             .AddIdentityCore<ApplicationUser>(options =>

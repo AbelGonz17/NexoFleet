@@ -93,7 +93,7 @@ async function handleSubmit() {
           <span>Recordar sesión</span>
         </label>
 
-        <a href="#" class="text-brand-400 hover:text-brand-300 font-medium">¿Olvidaste tu clave?</a>
+        <NuxtLink to="/forgot-password" class="text-brand-400 hover:text-brand-300 font-medium">¿Olvidaste tu clave?</NuxtLink>
       </div>
 
       <div class="pt-3">

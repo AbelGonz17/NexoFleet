@@ -35,192 +35,43 @@ useHead({
 const auth = useAuth()
 const permissions = usePermissions()
 
-// SuperAdmin Global KPIs
-const superAdminStats = [
-  {
-    name: 'Empresas en la Red',
-    value: '12',
-    subtitle: '10 Activas · 2 Suspendidas',
-    change: '+2 este mes',
-    trend: 'up',
-    icon: Building2,
-    color: 'text-purple-400 bg-purple-500/10 border-purple-500/20'
-  },
-  {
-    name: 'Flota Total Conectada',
-    value: '248',
-    subtitle: '96.2% Unidades en servicio',
-    change: '+18 nuevas',
-    trend: 'up',
-    icon: Truck,
-    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-  },
-  {
-    name: 'Usuarios en Plataforma',
-    value: '380',
-    subtitle: '14 Admins · 320 Conductores',
-    change: '+24 este mes',
-    trend: 'up',
-    icon: Users,
-    color: 'text-brand-400 bg-brand-500/10 border-brand-500/20'
-  },
-  {
-    name: 'Despachos Globales (24h)',
-    value: '1,420',
-    subtitle: '98.5% Puntualidad promedio',
-    change: '+14.2%',
-    trend: 'up',
-    icon: Activity,
-    color: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
-  }
-]
+// Dashboard Data Refs
+const superAdminStats = ref<any[]>([])
+const topCompanies = ref<any[]>([])
+const liveAuditFeed = ref<any[]>([])
 
-// SuperAdmin Top Companies
-const topCompanies = [
-  {
-    id: '1',
-    name: 'Transportes Los Andes S.A.C.',
-    ruc: '20601234567',
-    fleetCount: 48,
-    tripsThisMonth: 620,
-    status: 'Active',
-    adminEmail: 'admin@losandes.pe'
-  },
-  {
-    id: '2',
-    name: 'Expreso San Martín E.I.R.L.',
-    ruc: '20559874123',
-    fleetCount: 36,
-    tripsThisMonth: 445,
-    status: 'Active',
-    adminEmail: 'contacto@expresosanmartin.com'
-  },
-  {
-    id: '3',
-    name: 'Trans Cargo del Norte S.A.',
-    ruc: '20491827364',
-    fleetCount: 29,
-    tripsThisMonth: 290,
-    status: 'Active',
-    adminEmail: 'operaciones@transcargonorte.pe'
-  },
-  {
-    id: '4',
-    name: 'Logística & Distribución Rápida',
-    ruc: '20123984751',
-    fleetCount: 15,
-    tripsThisMonth: 65,
-    status: 'Suspended',
-    adminEmail: 'logistica@distrapida.com'
-  }
-]
+const companyStats = ref<any[]>([])
+const recentTrips = ref<any[]>([])
 
-// SuperAdmin Live System Feed
-const liveAuditFeed = [
-  {
-    id: '1',
-    action: 'EMPRESA_CREADA',
-    description: 'Nueva empresa registrada: Expreso San Martín E.I.R.L.',
-    user: 'admin@nexofleet.test',
-    time: 'Hace 12 min',
-    severity: 'success'
-  },
-  {
-    id: '2',
-    action: 'ADMIN_ASIGNADO',
-    description: 'Administrador asignado a Transportes Los Andes (edramirez@gmail.com)',
-    user: 'admin@nexofleet.test',
-    time: 'Hace 35 min',
-    severity: 'info'
-  },
-  {
-    id: '3',
-    action: 'BACKUP_COMPLETADO',
-    description: 'Copia de seguridad global de base de datos PostgreSQL exitosa',
-    user: 'Sistema Automático',
-    time: 'Hace 2 horas',
-    severity: 'info'
-  },
-  {
-    id: '4',
-    action: 'EMPRESA_SUSPENDIDA',
-    description: 'Empresa suspendida: Logística & Distribución Rápida (Documentación vencida)',
-    user: 'admin@nexofleet.test',
-    time: 'Ayer 18:40',
-    severity: 'warning'
-  }
-]
+const pending = ref(true)
+const api = useApi()
 
-// Company Admin / Operator Stats
-const companyStats = [
-  {
-    name: 'Viajes Activos Hoy',
-    value: '24',
-    change: '+12%',
-    trend: 'up',
-    icon: Navigation,
-    color: 'text-brand-400 bg-brand-500/10 border-brand-500/20'
-  },
-  {
-    name: 'Flota Operativa',
-    value: '48 / 52',
-    change: '92.3%',
-    trend: 'up',
-    icon: Truck,
-    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-  },
-  {
-    name: 'Puntualidad en Rutas',
-    value: '98.5%',
-    change: '+0.8%',
-    trend: 'up',
-    icon: Clock,
-    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20'
-  },
-  {
-    name: 'Facturación Mensual',
-    value: '$45,280',
-    change: '+18.4%',
-    trend: 'up',
-    icon: DollarSign,
-    color: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+onMounted(async () => {
+  try {
+    pending.value = true
+    if (permissions.isSuperAdmin.value) {
+      // TODO: Reemplazar con los endpoints reales de tu backend
+      // const statsData = await api.get('/v1/dashboard/superadmin/stats')
+      // const companiesData = await api.get('/v1/dashboard/superadmin/top-companies')
+      // const auditData = await api.get('/v1/dashboard/superadmin/audit-feed')
+      
+      superAdminStats.value = []
+      topCompanies.value = []
+      liveAuditFeed.value = []
+    } else {
+      // TODO: Reemplazar con los endpoints reales de tu backend
+      // const statsData = await api.get('/v1/dashboard/company/stats')
+      // const tripsData = await api.get('/v1/dashboard/company/recent-trips')
+      
+      companyStats.value = []
+      recentTrips.value = []
+    }
+  } catch (error) {
+    console.error('Error cargando datos del dashboard', error)
+  } finally {
+    pending.value = false
   }
-]
-
-const recentTrips = [
-  {
-    number: 'TRIP-2026-089',
-    route: 'Zona Industrial -> Planta Central',
-    driver: 'Carlos Mendoza',
-    vehicle: 'Toyota Coaster (A89BC2)',
-    status: 'InProgress',
-    time: 'Hace 25 min'
-  },
-  {
-    number: 'TRIP-2026-088',
-    route: 'Ruta Norte 02 -> Terminal Este',
-    driver: 'Luis Navarro',
-    vehicle: 'Iveco Daily (X12YZ3)',
-    status: 'Completed',
-    time: 'Hace 1 hora'
-  },
-  {
-    number: 'TRIP-2026-087',
-    route: 'Personal Turno Noche -> Sede B',
-    driver: 'José Ramírez',
-    vehicle: 'Mercedes Sprinter (M44KK1)',
-    status: 'Planned',
-    time: 'Programado 18:30'
-  },
-  {
-    number: 'TRIP-2026-086',
-    route: 'Despacho Especial Clínico',
-    driver: 'Manuel Díaz',
-    vehicle: 'Ford Transit (F90LL8)',
-    status: 'PendingApproval',
-    time: 'Por aprobar'
-  }
-]
+})
 </script>
 
 <template>
