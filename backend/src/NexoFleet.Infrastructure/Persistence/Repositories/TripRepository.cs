@@ -49,6 +49,48 @@ internal sealed class TripRepository(ApplicationDbContext dbContext) : ITripRepo
         return query.AnyAsync(cancellationToken);
     }
 
+    public Task<bool> HasActiveTripForEmployeeAsync(
+        Guid companyId,
+        Guid employeeId,
+        Guid? excludingTripId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query =
+            from assignment in dbContext.Set<TripAssignment>()
+            join trip in dbContext.Trips
+                on new { assignment.CompanyId, assignment.TripId }
+                equals new { trip.CompanyId, TripId = trip.Id }
+            where assignment.CompanyId == companyId &&
+                assignment.EmployeeId == employeeId &&
+                !assignment.EndedAtUtc.HasValue &&
+                (trip.Status == TripStatus.Planned || trip.Status == TripStatus.Assigned || trip.Status == TripStatus.InProgress) &&
+                (!excludingTripId.HasValue || trip.Id != excludingTripId.Value)
+            select assignment;
+
+        return query.AnyAsync(cancellationToken);
+    }
+
+    public Task<bool> HasActiveTripForVehicleAsync(
+        Guid companyId,
+        Guid vehicleId,
+        Guid? excludingTripId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query =
+            from assignment in dbContext.Set<TripAssignment>()
+            join trip in dbContext.Trips
+                on new { assignment.CompanyId, assignment.TripId }
+                equals new { trip.CompanyId, TripId = trip.Id }
+            where assignment.CompanyId == companyId &&
+                assignment.VehicleId == vehicleId &&
+                !assignment.EndedAtUtc.HasValue &&
+                (trip.Status == TripStatus.Planned || trip.Status == TripStatus.Assigned || trip.Status == TripStatus.InProgress) &&
+                (!excludingTripId.HasValue || trip.Id != excludingTripId.Value)
+            select assignment;
+
+        return query.AnyAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Trip>> ListByCompanyIdAsync(
         Guid companyId,
         CancellationToken cancellationToken = default) =>

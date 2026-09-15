@@ -159,6 +159,33 @@ internal sealed class IdentityService(
         return list;
     }
 
+    public async Task<Result> ChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return Result.Failure(AuthErrors.InvalidCredentials);
+        }
+
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors
+                .GroupBy(e => e.Code)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+            return Result.Failure(new ValidationError(errors));
+        }
+
+        user.RequiresPasswordChange = false;
+        await userManager.UpdateAsync(user);
+
+        return Result.Success();
+    }
+
     public Task SignOutAsync() => signInManager.SignOutAsync();
 
     private async Task<AuthenticatedUser> MapUserAsync(ApplicationUser user, CancellationToken cancellationToken = default)
@@ -179,7 +206,8 @@ internal sealed class IdentityService(
             user.LastName,
             user.CompanyId,
             companyName,
-            roles.ToArray());
+            roles.ToArray(),
+            user.RequiresPasswordChange);
     }
 }
 

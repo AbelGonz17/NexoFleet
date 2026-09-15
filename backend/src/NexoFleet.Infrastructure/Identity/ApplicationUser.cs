@@ -14,4 +14,6 @@ public sealed class ApplicationUser : IdentityUser<Guid>
     public Company? Company { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    public bool RequiresPasswordChange { get; set; } = true;
 }

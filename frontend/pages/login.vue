@@ -2,6 +2,7 @@
 import { Truck, ArrowRight } from 'lucide-vue-next'
 import BaseButton from '~/components/common/BaseButton.vue'
 import BaseInput from '~/components/common/BaseInput.vue'
+import ChangePasswordModal from '~/components/auth/ChangePasswordModal.vue'
 
 definePageMeta({
   layout: 'auth',
@@ -14,11 +15,13 @@ useHead({
 
 const auth = useAuth()
 const api = useApi()
+const router = useRouter()
 const email = ref('')
 const password = ref('')
 const rememberMe = ref(true)
 const loading = ref(false)
 const errorMessage = ref('')
+const showChangePasswordModal = ref(false)
 
 onMounted(async () => {
   api.clearCsrfToken()
@@ -36,16 +39,25 @@ async function handleSubmit() {
   errorMessage.value = ''
 
   try {
-    await auth.login({
+    const data = await auth.login({
       email: email.value,
       password: password.value,
       rememberMe: rememberMe.value
     })
+
+    if (data.requiresPasswordChange) {
+      showChangePasswordModal.value = true
+    }
   } catch (err: any) {
     errorMessage.value = err?.data?.detail || 'Credenciales inválidas o servidor no disponible.'
   } finally {
     loading.value = false
   }
+}
+
+function onChangePasswordSuccess() {
+  showChangePasswordModal.value = false
+  router.push('/')
 }
 </script>
 
@@ -109,5 +121,10 @@ async function handleSubmit() {
         </BaseButton>
       </div>
     </form>
+
+    <ChangePasswordModal
+      :is-open="showChangePasswordModal"
+      @success="onChangePasswordSuccess"
+    />
   </div>
 </template>

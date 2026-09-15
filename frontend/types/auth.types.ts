@@ -5,6 +5,7 @@ export interface AuthenticatedUser {
   lastName?: string
   fullName: string
   roles: string[]
+  requiresPasswordChange: boolean
   role?: string
   companyId?: string | null
   companyName?: string | null

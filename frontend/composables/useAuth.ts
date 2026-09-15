@@ -33,6 +33,12 @@ export function useAuth() {
     await api.getCsrfToken(true)
 
     store.setUser(data)
+
+    if (data.requiresPasswordChange) {
+      toasts.info('Cambio de Contraseña', 'Por seguridad, debes cambiar tu contraseña temporal.')
+      return data
+    }
+
     toasts.success('¡Bienvenido!', `Has iniciado sesión como ${data.fullName}`)
     router.push('/')
     return data

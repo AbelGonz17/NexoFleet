@@ -46,6 +46,22 @@ public sealed class AuthController(
     public async Task<ActionResult<AuthenticatedUser>> Me(CancellationToken cancellationToken) =>
         this.ToActionResult(await authService.GetCurrentUserAsync(cancellationToken));
 
+    /// <summary>Cambia la contraseña del usuario autenticado.</summary>
+    /// <param name="request">Credenciales actuales y nuevas.</param>
+    /// <param name="antiforgeryToken">Token obtenido desde GET /api/v1/auth/csrf.</param>
+    /// <param name="cancellationToken">Token de cancelación de la solicitud.</param>
+    [Authorize]
+    [RequireAntiforgeryToken]
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        [FromHeader(Name = "X-XSRF-TOKEN")] string? antiforgeryToken,
+        CancellationToken cancellationToken) =>
+        this.ToNoContentResult(await authService.ChangePasswordAsync(request, cancellationToken));
+
     /// <summary>Cierra la sesión activa.</summary>
     /// <param name="antiforgeryToken">Token obtenido desde GET /api/v1/auth/csrf.</param>
     [Authorize]

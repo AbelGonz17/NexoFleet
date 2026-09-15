@@ -31,5 +31,11 @@ public interface IIdentityService
         string role,
         CancellationToken cancellationToken = default);
 
+    Task<Result> ChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default);
+
     Task SignOutAsync();
 }

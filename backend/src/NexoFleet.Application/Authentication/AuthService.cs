@@ -8,7 +8,8 @@ namespace NexoFleet.Application.Authentication;
 public sealed class AuthService(
     IIdentityService identityService,
     ICurrentUser currentUser,
-    IValidator<LoginRequest> loginValidator)
+    IValidator<LoginRequest> loginValidator,
+    IValidator<ChangePasswordRequest> changePasswordValidator)
 {
     public async Task<Result<AuthenticatedUser>> LoginAsync(
         LoginRequest request,
@@ -44,6 +45,30 @@ public sealed class AuthService(
         return user is null
             ? Result<AuthenticatedUser>.Failure(AuthErrors.SessionNotFound)
             : Result<AuthenticatedUser>.Success(user);
+    }
+
+    public async Task<Result> ChangePasswordAsync(
+        ChangePasswordRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (currentUser.UserId is not { } userId)
+        {
+            return Result.Failure(AuthErrors.SessionNotFound);
+        }
+
+        var validationResult = await changePasswordValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            var errors = validationResult.Errors
+                .GroupBy(error => error.PropertyName)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(error => error.ErrorMessage).Distinct().ToArray());
+
+            return Result.Failure(new ValidationError(errors));
+        }
+
+        return await identityService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword, cancellationToken);
     }
 
     public async Task<Result> LogoutAsync()

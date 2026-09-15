@@ -20,6 +20,18 @@ public interface ITripRepository
         Guid? excludingTripId = null,
         CancellationToken cancellationToken = default);
 
+    Task<bool> HasActiveTripForEmployeeAsync(
+        Guid companyId,
+        Guid employeeId,
+        Guid? excludingTripId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> HasActiveTripForVehicleAsync(
+        Guid companyId,
+        Guid vehicleId,
+        Guid? excludingTripId = null,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Trip>> ListByCompanyIdAsync(
         Guid companyId,
         CancellationToken cancellationToken = default);

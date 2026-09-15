@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Navigation, Calendar, DollarSign, MapPin, Building2, User, Truck, Route as RouteIcon } from 'lucide-vue-next'
+import { Navigation, Calendar, DollarSign, MapPin, Building2, User, Truck, Route as RouteIcon, AlertTriangle } from 'lucide-vue-next'
 import BaseModal from '~/components/common/BaseModal.vue'
 import BaseInput from '~/components/common/BaseInput.vue'
 import BaseButton from '~/components/common/BaseButton.vue'
@@ -28,6 +28,8 @@ const selectedRouteId = ref<string>('')
 const selectedClientId = ref<string>('')
 const selectedEmployeeId = ref<string>('')
 const selectedVehicleId = ref<string>('')
+const createdTripId = ref<string>('')
+const errorMessage = ref('')
 
 const form = ref({
   tripNumber: '',
@@ -59,6 +61,8 @@ function resetForm() {
   selectedClientId.value = ''
   selectedEmployeeId.value = ''
   selectedVehicleId.value = ''
+  createdTripId.value = ''
+  errorMessage.value = ''
 }
 
 async function loadCatalogs() {
@@ -109,12 +113,13 @@ function handleRouteChange() {
 }
 
 async function handleSubmit() {
+  errorMessage.value = ''
   if (!form.value.tripNumber.trim()) {
-    toasts.warning('El código de viaje es requerido.')
+    errorMessage.value = 'El código de viaje es requerido.'
     return
   }
   if (!form.value.originAddress.trim() || !form.value.destinationAddress.trim()) {
-    toasts.warning('El origen y destino son obligatorios.')
+    errorMessage.value = 'El origen y destino son obligatorios.'
     return
   }
 
@@ -139,25 +144,38 @@ async function handleSubmit() {
       currency: form.value.currency
     }
 
-    const createdTrip = await api.post<TripResponse>('/v1/trips/planned', payload)
+    let currentTripId = createdTripId.value
+
+    if (!currentTripId) {
+      const createdTrip = await api.post<TripResponse>('/v1/trips/planned', payload)
+      currentTripId = createdTrip.id
+      createdTripId.value = currentTripId
+    }
 
     // If driver is selected, automatically assign
-    if (createdTrip && createdTrip.id && selectedEmployeeId.value) {
+    if (currentTripId && selectedEmployeeId.value) {
       try {
-        await api.post(`/v1/trips/${createdTrip.id}/assign`, {
+        await api.post(`/v1/trips/${currentTripId}/assign`, {
           employeeId: selectedEmployeeId.value,
           vehicleId: selectedVehicleId.value || null
         })
-      } catch {
-        toasts.warning('El viaje fue creado pero ocurrió un detalle al asignar la unidad.')
+      } catch (e: any) {
+        const errorData = e?.response?.data || e?.data || e
+        if (errorData?.status === 409 && errorData?.code === 'Trip.EmployeeAlreadyAssigned') {
+          errorMessage.value = 'El conductor seleccionado ya tiene un viaje asignado o planificado, elige otro.'
+          isSubmitting.value = false
+          return
+        }
+        errorMessage.value = 'El viaje fue creado pero ocurrió un detalle al asignar la unidad.'
       }
     }
 
     toasts.success(`Viaje ${form.value.tripNumber} planificado exitosamente.`)
     emit('created')
     emit('close')
-  } catch {
-    // Handled by useApi toast
+  } catch (e: any) {
+    const errorData = e?.response?.data || e?.data || e
+    errorMessage.value = errorData?.detail || 'Ocurrió un error inesperado al procesar la solicitud.'
   } finally {
     isSubmitting.value = false
   }
@@ -167,6 +185,12 @@ async function handleSubmit() {
 <template>
   <BaseModal :is-open="isOpen" title="Planificar Nuevo Viaje" @close="$emit('close')">
     <form class="space-y-4" @submit.prevent="handleSubmit">
+      
+      <div v-if="errorMessage" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-400">
+        <AlertTriangle class="w-4 h-4 shrink-0 mt-0.5" />
+        <span class="text-xs font-semibold leading-relaxed">{{ errorMessage }}</span>
+      </div>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <BaseInput
           v-model="form.tripNumber"

@@ -227,6 +227,26 @@ public sealed class FakeTripRepository : ITripRepository
         return Task.FromResult(exists);
     }
 
+    public Task<bool> HasActiveTripForEmployeeAsync(Guid companyId, Guid employeeId, Guid? excludingTripId = null, CancellationToken cancellationToken = default)
+    {
+        var exists = Trips.Any(t =>
+            t.CompanyId == companyId &&
+            (t.Status == TripStatus.Planned || t.Status == TripStatus.Assigned || t.Status == TripStatus.InProgress) &&
+            t.CurrentAssignment?.EmployeeId == employeeId &&
+            (!excludingTripId.HasValue || t.Id != excludingTripId.Value));
+        return Task.FromResult(exists);
+    }
+
+    public Task<bool> HasActiveTripForVehicleAsync(Guid companyId, Guid vehicleId, Guid? excludingTripId = null, CancellationToken cancellationToken = default)
+    {
+        var exists = Trips.Any(t =>
+            t.CompanyId == companyId &&
+            (t.Status == TripStatus.Planned || t.Status == TripStatus.Assigned || t.Status == TripStatus.InProgress) &&
+            t.CurrentAssignment?.VehicleId == vehicleId &&
+            (!excludingTripId.HasValue || t.Id != excludingTripId.Value));
+        return Task.FromResult(exists);
+    }
+
     public Task<IReadOnlyList<Trip>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<Trip>>(Trips.Where(t => t.CompanyId == companyId).OrderByDescending(t => t.ServiceDate).ToList());
 

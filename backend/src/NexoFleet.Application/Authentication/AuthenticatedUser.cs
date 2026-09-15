@@ -7,5 +7,6 @@ public sealed record AuthenticatedUser(
     string LastName,
     Guid? CompanyId,
     string? CompanyName,
-    IReadOnlyCollection<string> Roles);
+    IReadOnlyCollection<string> Roles,
+    bool RequiresPasswordChange);
 

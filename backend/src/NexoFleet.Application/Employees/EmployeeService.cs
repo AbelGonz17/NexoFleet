@@ -16,7 +16,8 @@ public sealed class EmployeeService(
     IClock clock,
     IValidator<CreateEmployeeRequest> createValidator,
     IValidator<UpdateEmployeeRequest> updateValidator,
-    IValidator<LinkUserAccountRequest> linkUserValidator)
+    IValidator<LinkUserAccountRequest> linkUserValidator,
+    NexoFleet.Application.Abstractions.Authentication.IIdentityService identityService)
 {
     public async Task<Result<EmployeeResponse>> GetByIdAsync(
         Guid id,
@@ -107,6 +108,22 @@ public sealed class EmployeeService(
         {
             return Result<EmployeeResponse>.Failure(employeeResult.Error);
         }
+
+        var userResult = await identityService.CreateUserAsync(
+            request.Email,
+            "NexoFleet2026*",
+            request.FirstName,
+            request.LastName,
+            companyId,
+            request.Role,
+            cancellationToken);
+
+        if (userResult.IsFailure)
+        {
+            return Result<EmployeeResponse>.Failure(userResult.Error);
+        }
+
+        employeeResult.Value.LinkUserAccount(userResult.Value.Id, now);
 
         employeeRepository.Add(employeeResult.Value);
         await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -350,10 +350,24 @@ public sealed class TripService(
         var employee = await employeeRepository.GetByIdAsync(companyId, request.EmployeeId, cancellationToken);
         if (employee is null) return Result<TripResponse>.Failure(EmployeeErrors.NotFound);
 
+        // Check if employee is already assigned to an active trip
+        var employeeHasActiveTrip = await tripRepository.HasActiveTripForEmployeeAsync(companyId, request.EmployeeId, id, cancellationToken);
+        if (employeeHasActiveTrip)
+        {
+            return Result<TripResponse>.Failure(Error.Conflict("Trip.EmployeeAlreadyAssigned", "El conductor ya se encuentra asignado a un viaje en curso o planificado."));
+        }
+
         if (request.VehicleId.HasValue)
         {
             var vehicle = await vehicleRepository.GetByIdAsync(companyId, request.VehicleId.Value, cancellationToken);
             if (vehicle is null) return Result<TripResponse>.Failure(VehicleErrors.NotFound);
+
+            // Check if vehicle is already assigned to an active trip
+            var vehicleHasActiveTrip = await tripRepository.HasActiveTripForVehicleAsync(companyId, request.VehicleId.Value, id, cancellationToken);
+            if (vehicleHasActiveTrip)
+            {
+                return Result<TripResponse>.Failure(Error.Conflict("Trip.VehicleAlreadyAssigned", "El vehículo ya se encuentra asignado a un viaje en curso o planificado."));
+            }
         }
 
         var assignResult = trip.Assign(

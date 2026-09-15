@@ -7,4 +7,5 @@ public sealed record CreateEmployeeRequest(
     string IdentityDocument,
     string Phone,
     string Email,
-    DateOnly HireDate);
+    DateOnly HireDate,
+    string Role);

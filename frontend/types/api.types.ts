@@ -240,6 +240,7 @@ export interface CreateEmployeeRequest {
   phone: string
   email: string
   hireDate: string
+  role: string
 }
 
 export interface UpdateEmployeeRequest {
