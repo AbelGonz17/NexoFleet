@@ -1,8 +1,21 @@
 <script setup lang="ts">
 import { Bell, Search, Building2, Globe, Truck, Sparkles } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
 
 const auth = useAuth()
 const permissions = usePermissions()
+const api = useApi()
+
+const hasUnread = ref(false)
+
+onMounted(async () => {
+  try {
+    const res = await api.get<any[]>('/v1/notifications/my?unreadOnly=true')
+    hasUnread.value = res && res.length > 0
+  } catch (e) {
+    hasUnread.value = false
+  }
+})
 
 const activeContextLabel = computed(() => {
   if (permissions.isSuperAdmin.value) {
@@ -72,7 +85,7 @@ const activeContextLabel = computed(() => {
         title="Centro de Notificaciones"
       >
         <Bell class="w-4 h-4" />
-        <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-500 ring-2 ring-slate-950 animate-pulse" />
+        <span v-if="hasUnread" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-500 ring-2 ring-slate-950 animate-pulse" />
       </NuxtLink>
     </div>
   </header>

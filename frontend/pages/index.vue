@@ -35,12 +35,30 @@ useHead({
 const auth = useAuth()
 const permissions = usePermissions()
 
+const iconsMap: Record<string, any> = {
+  Building2, Truck, Users, Activity, Navigation, Clock, DollarSign
+}
+
+function getStatColor(iconName: string) {
+  const colors: Record<string, string> = {
+    Building2: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+    Truck: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    Users: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+    Activity: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    Navigation: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+    Clock: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
+    DollarSign: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+  }
+  return colors[iconName] || 'text-slate-400 bg-slate-500/10 border-slate-500/20'
+}
+
 // Dashboard Data Refs
 const superAdminStats = ref<any[]>([])
 const topCompanies = ref<any[]>([])
 const liveAuditFeed = ref<any[]>([])
 
 const companyStats = ref<any[]>([])
+const fleetStatus = ref<any>(null)
 const recentTrips = ref<any[]>([])
 
 const pending = ref(true)
@@ -50,21 +68,25 @@ onMounted(async () => {
   try {
     pending.value = true
     if (permissions.isSuperAdmin.value) {
-      // TODO: Reemplazar con los endpoints reales de tu backend
-      // const statsData = await api.get('/v1/dashboard/superadmin/stats')
-      // const companiesData = await api.get('/v1/dashboard/superadmin/top-companies')
-      // const auditData = await api.get('/v1/dashboard/superadmin/audit-feed')
+      const [statsData, companiesData, auditData] = await Promise.all([
+        api.get('/v1/dashboard/superadmin/stats'),
+        api.get('/v1/dashboard/superadmin/top-companies'),
+        api.get('/v1/dashboard/superadmin/audit-feed')
+      ])
       
-      superAdminStats.value = []
-      topCompanies.value = []
-      liveAuditFeed.value = []
+      superAdminStats.value = statsData as any[] || []
+      topCompanies.value = companiesData as any[] || []
+      liveAuditFeed.value = auditData as any[] || []
     } else {
-      // TODO: Reemplazar con los endpoints reales de tu backend
-      // const statsData = await api.get('/v1/dashboard/company/stats')
-      // const tripsData = await api.get('/v1/dashboard/company/recent-trips')
+      const [statsData, tripsData] = await Promise.all([
+        api.get('/v1/dashboard/company/stats'),
+        api.get('/v1/dashboard/company/recent-trips')
+      ])
       
-      companyStats.value = []
-      recentTrips.value = []
+      const stats = statsData as any
+      companyStats.value = stats?.kpis || []
+      fleetStatus.value = stats?.fleetStatus || null
+      recentTrips.value = tripsData as any[] || []
     }
   } catch (error) {
     console.error('Error cargando datos del dashboard', error)
@@ -125,8 +147,8 @@ onMounted(async () => {
           class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl p-5 shadow-xl relative overflow-hidden group hover:border-purple-500/40 transition-all"
         >
           <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center border" :class="stat.color">
-              <component :is="stat.icon" class="w-5 h-5" />
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center border" :class="getStatColor(stat.iconName)">
+              <component :is="iconsMap[stat.iconName]" class="w-5 h-5" />
             </div>
             <div class="flex items-center gap-1 text-[11px] font-bold text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-500/20">
               <TrendingUp class="w-3 h-3" />
@@ -251,12 +273,12 @@ onMounted(async () => {
               >
                 <div class="flex items-center justify-between gap-2">
                   <span class="font-mono text-[10px] font-bold text-purple-400">{{ feed.action }}</span>
-                  <span class="text-[10px] text-slate-500">{{ feed.time }}</span>
+                  <span class="text-[10px] text-slate-500">{{ feed.timestamp }}</span>
                 </div>
                 <p class="text-slate-200 mt-1 font-medium leading-relaxed">{{ feed.description }}</p>
                 <div class="flex items-center gap-1.5 mt-2 text-[10px] text-slate-400">
                   <span class="text-slate-500">Actor:</span>
-                  <span class="font-mono text-slate-300">{{ feed.user }}</span>
+                  <span class="font-mono text-slate-300">{{ feed.userId }}</span>
                 </div>
               </div>
             </div>
@@ -308,8 +330,8 @@ onMounted(async () => {
           class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl p-5 shadow-xl relative overflow-hidden group hover:border-slate-700/80 transition-all"
         >
           <div class="flex items-center justify-between">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center border" :class="stat.color">
-              <component :is="stat.icon" class="w-5 h-5" />
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center border" :class="getStatColor(stat.iconName)">
+              <component :is="iconsMap[stat.iconName]" class="w-5 h-5" />
             </div>
             <div class="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/20">
               <TrendingUp class="w-3 h-3" />
@@ -348,12 +370,12 @@ onMounted(async () => {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60">
-                  <tr v-for="trip in recentTrips" :key="trip.number" class="hover:bg-slate-800/30 transition-colors">
-                    <td class="py-3.5 font-bold text-white">{{ trip.number }}</td>
-                    <td class="py-3.5 text-slate-300">{{ trip.route }}</td>
+                  <tr v-for="trip in recentTrips" :key="trip.tripNumber" class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3.5 font-bold text-white">{{ trip.tripNumber }}</td>
+                    <td class="py-3.5 text-slate-300">{{ trip.routeName }}</td>
                     <td class="py-3.5">
-                      <p class="font-medium text-slate-200">{{ trip.driver }}</p>
-                      <p class="text-[10px] text-slate-500">{{ trip.vehicle }}</p>
+                      <p class="font-medium text-slate-200">{{ trip.driverName }}</p>
+                      <p class="text-[10px] text-slate-500">{{ trip.licensePlate }}</p>
                     </td>
                     <td class="py-3.5">
                       <BaseBadge
@@ -382,7 +404,7 @@ onMounted(async () => {
                         Planificado
                       </BaseBadge>
                     </td>
-                    <td class="py-3.5 text-right text-slate-400">{{ trip.time }}</td>
+                    <td class="py-3.5 text-right text-slate-400">{{ trip.createdAt }}</td>
                   </tr>
                 </tbody>
               </table>

@@ -49,10 +49,11 @@ public sealed class FakeCurrentTenant(Guid? companyId) : ICurrentTenant
     public bool IsAvailable => CompanyId.HasValue;
 }
 
-public sealed class FakeCurrentUser(Guid? userId, string? role = null) : ICurrentUser
+public sealed class FakeCurrentUser(Guid? userId = null, string? role = null, string? email = null) : ICurrentUser
 {
-    public Guid? UserId { get; set; } = userId;
-    public string? Role { get; set; } = role;
+    public Guid? UserId { get; set; } = userId ?? Guid.NewGuid();
+    public string? Email { get; set; } = email ?? "test@nexofleet.test";
+    public string? Role { get; set; } = role ?? "Admin";
     public bool IsAuthenticated => UserId.HasValue;
 }
 
@@ -277,11 +278,25 @@ public sealed class FakeNotificationRepository : INotificationRepository
 {
     public List<Notification> Notifications { get; } = [];
 
-    public Task<Notification?> GetByIdAsync(Guid companyId, Guid id, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Notifications.SingleOrDefault(n => n.CompanyId == companyId && n.Id == id));
+    public Task<Notification?> GetByIdAsync(Guid? companyId, Guid id, CancellationToken cancellationToken = default)
+    {
+        var query = Notifications.Where(n => n.Id == id);
+        if (companyId.HasValue) query = query.Where(n => n.CompanyId == companyId.Value);
+        return Task.FromResult(query.SingleOrDefault());
+    }
 
-    public Task<IReadOnlyList<Notification>> GetByRecipientAsync(Guid companyId, Guid recipientUserId, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<Notification>>(Notifications.Where(n => n.CompanyId == companyId && n.RecipientUserId == recipientUserId).OrderByDescending(n => n.CreatedAtUtc).ToList());
+    public Task<IReadOnlyList<Notification>> GetByRecipientAsync(Guid? companyId, Guid recipientUserId, bool unreadOnly = false, string? type = null, CancellationToken cancellationToken = default)
+    {
+        var query = Notifications.Where(n => n.RecipientUserId == recipientUserId);
+        if (companyId.HasValue) query = query.Where(n => n.CompanyId == companyId.Value);
+        
+        if (unreadOnly) query = query.Where(n => n.Status == NexoFleet.Domain.Notifications.NotificationStatus.Unread);
+        
+        if (!string.IsNullOrEmpty(type) && Enum.TryParse<NexoFleet.Domain.Notifications.NotificationType>(type, true, out var parsedType))
+            query = query.Where(n => n.Type == parsedType);
+            
+        return Task.FromResult<IReadOnlyList<Notification>>(query.OrderByDescending(n => n.CreatedAtUtc).ToList());
+    }
 
     public Task<IReadOnlyList<Notification>> ListByCompanyIdAsync(Guid companyId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<Notification>>(Notifications.Where(n => n.CompanyId == companyId).OrderByDescending(n => n.CreatedAtUtc).ToList());
@@ -298,6 +313,36 @@ public sealed class FakeAuditLogRepository : IAuditLogRepository
 
     public Task<IReadOnlyList<AuditLog>> ListByCompanyIdAsync(Guid? companyId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<AuditLog>>(Logs.Where(l => !companyId.HasValue || l.CompanyId == companyId.Value).OrderByDescending(l => l.OccurredAtUtc).ToList());
+
+    public Task<IReadOnlyList<AuditLog>> SearchAsync(Guid? companyId, string? search, string? entityType, string? severity, CancellationToken cancellationToken = default)
+    {
+        var query = Logs.Where(l => !companyId.HasValue || l.CompanyId == companyId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(l => l.Action.ToLower().Contains(s) || (l.ActorEmail != null && l.ActorEmail.ToLower().Contains(s)) || (l.IpAddress != null && l.IpAddress.ToLower().Contains(s)) || (l.Data != null && l.Data.ToLower().Contains(s)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(entityType) && !entityType.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(l => l.EntityType == entityType);
+
+        if (!string.IsNullOrWhiteSpace(severity) && !severity.Equals("ALL", StringComparison.OrdinalIgnoreCase) && Enum.TryParse<NexoFleet.Domain.Auditing.AuditLogSeverity>(severity, true, out var parsedSeverity))
+            query = query.Where(l => l.Severity == parsedSeverity);
+
+        return Task.FromResult<IReadOnlyList<AuditLog>>(query.OrderByDescending(l => l.OccurredAtUtc).Take(100).ToList());
+    }
+
+    public Task<NexoFleet.Application.Auditing.Dtos.AuditLogStatsResponse> GetStatsAsync(Guid? companyId, CancellationToken cancellationToken = default)
+    {
+        var query = Logs.Where(l => !companyId.HasValue || l.CompanyId == companyId.Value).ToList();
+        return Task.FromResult(new NexoFleet.Application.Auditing.Dtos.AuditLogStatsResponse(
+            query.Count,
+            query.Count(l => l.EntityType == "Company" || l.EntityType == "User" || l.EntityType == "Role"),
+            query.Count(l => l.EntityType == "Security"),
+            query.Count(l => l.Severity == NexoFleet.Domain.Auditing.AuditLogSeverity.Warning || l.Severity == NexoFleet.Domain.Auditing.AuditLogSeverity.Critical)
+        ));
+    }
 
     public void Add(AuditLog auditLog) => Logs.Add(auditLog);
 }

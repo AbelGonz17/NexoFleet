@@ -243,6 +243,12 @@ public sealed class CompanyServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<AuthenticatedUser>>(Array.Empty<AuthenticatedUser>());
 
+        public Task<IReadOnlyList<AuthenticatedUser>> GetUsersByRoleAsync(string role, CancellationToken cancellationToken = default)
+        {
+            var result = new List<AuthenticatedUser>();
+            return Task.FromResult<IReadOnlyList<AuthenticatedUser>>(result);
+        }
+
         public Task SignOutAsync() => Task.CompletedTask;
     }
 }

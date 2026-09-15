@@ -21,10 +21,7 @@ public sealed class NotificationService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        if (currentTenant.CompanyId is not { } companyId)
-        {
-            return Result<NotificationResponse>.Failure(NotificationErrors.InvalidCompanyId);
-        }
+        var companyId = currentTenant.CompanyId;
 
         var notification = await notificationRepository.GetByIdAsync(companyId, id, cancellationToken);
         return notification is null
@@ -33,19 +30,18 @@ public sealed class NotificationService(
     }
 
     public async Task<Result<IReadOnlyList<NotificationResponse>>> GetMyNotificationsAsync(
+        bool unreadOnly = false,
+        string? type = null,
         CancellationToken cancellationToken = default)
     {
-        if (currentTenant.CompanyId is not { } companyId)
-        {
-            return Result<IReadOnlyList<NotificationResponse>>.Failure(NotificationErrors.InvalidCompanyId);
-        }
+        var companyId = currentTenant.CompanyId;
 
         if (currentUser.UserId is not { } recipientUserId)
         {
             return Result<IReadOnlyList<NotificationResponse>>.Failure(NotificationErrors.InvalidUserId);
         }
 
-        var notifications = await notificationRepository.GetByRecipientAsync(companyId, recipientUserId, cancellationToken);
+        var notifications = await notificationRepository.GetByRecipientAsync(companyId, recipientUserId, unreadOnly, type, cancellationToken);
         var responses = notifications.Select(NotificationResponse.FromDomain).ToArray();
         return Result<IReadOnlyList<NotificationResponse>>.Success(responses);
     }
@@ -105,10 +101,7 @@ public sealed class NotificationService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        if (currentTenant.CompanyId is not { } companyId)
-        {
-            return Result.Failure(NotificationErrors.InvalidCompanyId);
-        }
+        var companyId = currentTenant.CompanyId;
 
         var notification = await notificationRepository.GetByIdAsync(companyId, id, cancellationToken);
         if (notification is null)
@@ -130,10 +123,7 @@ public sealed class NotificationService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        if (currentTenant.CompanyId is not { } companyId)
-        {
-            return Result.Failure(NotificationErrors.InvalidCompanyId);
-        }
+        var companyId = currentTenant.CompanyId;
 
         var notification = await notificationRepository.GetByIdAsync(companyId, id, cancellationToken);
         if (notification is null)
@@ -148,6 +138,32 @@ public sealed class NotificationService(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result> MarkAllAsReadAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var companyId = currentTenant.CompanyId;
+
+        if (currentUser.UserId is not { } recipientUserId)
+        {
+            return Result.Failure(NotificationErrors.InvalidUserId);
+        }
+
+        var notifications = await notificationRepository.GetByRecipientAsync(companyId, recipientUserId, unreadOnly: true, type: null, cancellationToken);
+        
+        var now = clock.UtcNow;
+        foreach(var notification in notifications)
+        {
+            notification.MarkAsRead(now);
+        }
+
+        if (notifications.Count > 0)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         return Result.Success();
     }
 }

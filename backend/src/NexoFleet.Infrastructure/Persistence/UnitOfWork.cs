@@ -1,12 +1,17 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NexoFleet.Application.Abstractions.Persistence;
+using NexoFleet.Domain.Common;
 
 namespace NexoFleet.Infrastructure.Persistence;
 
-internal sealed class UnitOfWork(ApplicationDbContext dbContext) : IUnitOfWork
+internal sealed class UnitOfWork(ApplicationDbContext dbContext, IPublisher publisher) : IUnitOfWork
 {
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await PublishDomainEventsAsync(cancellationToken);
+        return await dbContext.SaveChangesAsync(cancellationToken);
+    }
 
     public async Task ExecuteInTransactionAsync(
         Func<CancellationToken, Task> operation,
@@ -22,7 +27,7 @@ internal sealed class UnitOfWork(ApplicationDbContext dbContext) : IUnitOfWork
             try
             {
                 await operation(cancellationToken);
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
             }
             catch
@@ -47,7 +52,7 @@ internal sealed class UnitOfWork(ApplicationDbContext dbContext) : IUnitOfWork
             try
             {
                 var result = await operation(cancellationToken);
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return result;
             }
@@ -57,5 +62,32 @@ internal sealed class UnitOfWork(ApplicationDbContext dbContext) : IUnitOfWork
                 throw;
             }
         });
+    }
+
+    private async Task PublishDomainEventsAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            var entitiesWithEvents = dbContext.ChangeTracker
+                .Entries<Entity>()
+                .Where(entry => entry.Entity.DomainEvents.Count != 0)
+                .ToList();
+
+            if (entitiesWithEvents.Count == 0)
+            {
+                break;
+            }
+
+            var domainEvents = entitiesWithEvents
+                .SelectMany(entry => entry.Entity.DomainEvents)
+                .ToList();
+
+            entitiesWithEvents.ForEach(entry => entry.Entity.ClearDomainEvents());
+
+            foreach (var domainEvent in domainEvents)
+            {
+                await publisher.Publish(domainEvent, cancellationToken);
+            }
+        }
     }
 }

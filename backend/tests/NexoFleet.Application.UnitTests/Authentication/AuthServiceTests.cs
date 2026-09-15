@@ -69,11 +69,10 @@ public sealed class AuthServiceTests
 
     private sealed class FakeCurrentUser(Guid? userId) : ICurrentUser
     {
-        public Guid? UserId { get; } = userId;
-
-        public string? Role => null;
-
-        public bool IsAuthenticated => UserId.HasValue;
+        public Guid? UserId { get; set; } = userId;
+        public string? Email { get; set; }
+        public string? Role { get; set; }
+        public bool IsAuthenticated { get; set; } = userId.HasValue;
     }
 
     private sealed class FakeIdentityService : IIdentityService
@@ -118,6 +117,12 @@ public sealed class AuthServiceTests
             Guid companyId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<AuthenticatedUser>>([]);
+
+        public Task<IReadOnlyList<AuthenticatedUser>> GetUsersByRoleAsync(string role, CancellationToken cancellationToken = default)
+        {
+            var result = new List<AuthenticatedUser>();
+            return Task.FromResult<IReadOnlyList<AuthenticatedUser>>(result);
+        }
 
         public Task SignOutAsync() => Task.CompletedTask;
     }

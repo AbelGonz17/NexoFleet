@@ -1,0 +1,9 @@
+namespace NexoFleet.Domain.Auditing;
+
+public enum AuditLogSeverity
+{
+    Info = 1,
+    Success = 2,
+    Warning = 3,
+    Critical = 4
+}

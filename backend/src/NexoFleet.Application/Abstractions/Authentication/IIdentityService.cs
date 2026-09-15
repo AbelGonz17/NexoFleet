@@ -27,5 +27,9 @@ public interface IIdentityService
         Guid companyId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<AuthenticatedUser>> GetUsersByRoleAsync(
+        string role,
+        CancellationToken cancellationToken = default);
+
     Task SignOutAsync();
 }

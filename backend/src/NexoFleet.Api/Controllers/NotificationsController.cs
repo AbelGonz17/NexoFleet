@@ -14,8 +14,11 @@ public sealed class NotificationsController(NotificationService notificationServ
     /// <summary>Obtiene las notificaciones del usuario autenticado.</summary>
     [HttpGet("my")]
     [ProducesResponseType<IReadOnlyList<NotificationResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<NotificationResponse>>> GetMyNotifications(CancellationToken cancellationToken) =>
-        this.ToActionResult(await notificationService.GetMyNotificationsAsync(cancellationToken));
+    public async Task<ActionResult<IReadOnlyList<NotificationResponse>>> GetMyNotifications(
+        [FromQuery] bool unreadOnly = false,
+        [FromQuery] string? type = null,
+        CancellationToken cancellationToken = default) =>
+        this.ToActionResult(await notificationService.GetMyNotificationsAsync(unreadOnly, type, cancellationToken));
 
     /// <summary>Lista todas las notificaciones de la empresa actual.</summary>
     [HttpGet]
@@ -68,4 +71,11 @@ public sealed class NotificationsController(NotificationService notificationServ
         [FromRoute] Guid id,
         CancellationToken cancellationToken) =>
         this.ToNoContentResult(await notificationService.ArchiveAsync(id, cancellationToken));
+
+    /// <summary>Marca todas las notificaciones del usuario como leídas.</summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    [HttpPost("read-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken) =>
+        this.ToNoContentResult(await notificationService.MarkAllAsReadAsync(cancellationToken));
 }

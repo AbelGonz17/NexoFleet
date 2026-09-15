@@ -41,6 +41,24 @@ public sealed class AuditLogService(
         return Result<IReadOnlyList<AuditLogResponse>>.Success(responses);
     }
 
+    public async Task<Result<IReadOnlyList<AuditLogResponse>>> SearchAsync(
+        string? search,
+        string? entityType,
+        string? severity,
+        CancellationToken cancellationToken = default)
+    {
+        var logs = await auditLogRepository.SearchAsync(currentTenant.CompanyId, search, entityType, severity, cancellationToken);
+        var responses = logs.Select(AuditLogResponse.FromDomain).ToArray();
+        return Result<IReadOnlyList<AuditLogResponse>>.Success(responses);
+    }
+
+    public async Task<Result<AuditLogStatsResponse>> GetStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var stats = await auditLogRepository.GetStatsAsync(currentTenant.CompanyId, cancellationToken);
+        return Result<AuditLogStatsResponse>.Success(stats);
+    }
+
     public async Task<Result<AuditLogResponse>> LogAsync(
         CreateAuditLogRequest request,
         CancellationToken cancellationToken = default)
@@ -66,6 +84,9 @@ public sealed class AuditLogService(
             request.Data,
             request.IpAddress,
             request.UserAgent,
+            request.Severity,
+            request.ActorEmail ?? currentUser.Email,
+            request.ActorRole ?? currentUser.Role,
             clock.UtcNow);
 
         if (auditLogResult.IsFailure)

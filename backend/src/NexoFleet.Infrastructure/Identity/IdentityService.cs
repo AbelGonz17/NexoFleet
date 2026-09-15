@@ -143,6 +143,22 @@ internal sealed class IdentityService(
         return list;
     }
 
+    public async Task<IReadOnlyList<AuthenticatedUser>> GetUsersByRoleAsync(
+        string role,
+        CancellationToken cancellationToken = default)
+    {
+        var users = await userManager.GetUsersInRoleAsync(role);
+        var activeUsers = users.Where(u => u.IsActive).ToList();
+
+        var list = new List<AuthenticatedUser>();
+        foreach (var user in activeUsers)
+        {
+            list.Add(await MapUserAsync(user, cancellationToken));
+        }
+
+        return list;
+    }
+
     public Task SignOutAsync() => signInManager.SignOutAsync();
 
     private async Task<AuthenticatedUser> MapUserAsync(ApplicationUser user, CancellationToken cancellationToken = default)

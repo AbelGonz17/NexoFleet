@@ -29,188 +29,149 @@ useHead({
 
 const api = useApi()
 
-interface AuditEvent {
+interface AuditLogResponse {
   id: string
-  occurredAtUtc: string
   action: string
-  actionLabel: string
   entityType: string
   entityId: string
+  severity: string
   actorEmail: string
   actorRole: string
   ipAddress: string
-  severity: 'info' | 'warning' | 'danger' | 'success'
-  details: string
-  metadata?: Record<string, any>
+  data: string
+  occurredAtUtc: string
 }
 
-// Rich Mock Audit Dataset
-const mockAuditLogs: AuditEvent[] = [
-  {
-    id: 'aud-001',
-    occurredAtUtc: '2026-09-04 14:45:22',
-    action: 'COMPANY_REGISTERED',
-    actionLabel: 'Registro de Empresa',
-    entityType: 'Company',
-    entityId: 'c8f42019-3f0e-4340-9a2c-90b58e7ad100',
-    actorEmail: 'admin@nexofleet.test',
-    actorRole: 'SuperAdmin',
-    ipAddress: '192.168.1.100 (Lima, PE)',
-    severity: 'success',
-    details: 'Se registró la empresa "Transportes Los Andes S.A.C." con RUC 20601234567',
-    metadata: {
-      companyName: 'Transportes Los Andes S.A.C.',
-      taxId: '20601234567',
-      email: 'contacto@losandes.pe',
-      status: 'Active'
-    }
-  },
-  {
-    id: 'aud-002',
-    occurredAtUtc: '2026-09-04 14:15:10',
-    action: 'ADMIN_PROVISIONED',
-    actionLabel: 'Creación de Administrador',
-    entityType: 'User',
-    entityId: 'u7b81920-55aa-43d9-9f12-00234a5ef890',
-    actorEmail: 'admin@nexofleet.test',
-    actorRole: 'SuperAdmin',
-    ipAddress: '192.168.1.100 (Lima, PE)',
-    severity: 'info',
-    details: 'Se aprovisionó cuenta de Administrador para edramirez@gmail.com vinculada a Transportes Los Andes',
-    metadata: {
-      email: 'edramirez@gmail.com',
-      assignedRole: 'Administrator',
-      companyId: 'c8f42019-3f0e-4340-9a2c-90b58e7ad100'
-    }
-  },
-  {
-    id: 'aud-003',
-    occurredAtUtc: '2026-09-04 12:30:45',
-    action: 'SECURITY_LOGIN_FAILED',
-    actionLabel: 'Fallo de Autenticación',
-    entityType: 'Security',
-    entityId: 'sec-9921',
-    actorEmail: 'unknown_attempt@ext.com',
-    actorRole: 'Anonymous',
-    ipAddress: '190.234.12.88 (Arequipa, PE)',
-    severity: 'danger',
-    details: '3 intentos fallidos de inicio de sesión con contraseña inválida',
-    metadata: {
-      attemptedEmail: 'admin@nexofleet.test',
-      failureReason: 'InvalidCredentials',
-      blockedTemporarily: false
-    }
-  },
-  {
-    id: 'aud-004',
-    occurredAtUtc: '2026-09-04 10:18:00',
-    action: 'COMPANY_SUSPENDED',
-    actionLabel: 'Suspensión de Empresa',
-    entityType: 'Company',
-    entityId: 'c1a23456-9900-47b2-8451-aa9988112233',
-    actorEmail: 'admin@nexofleet.test',
-    actorRole: 'SuperAdmin',
-    ipAddress: '192.168.1.100 (Lima, PE)',
-    severity: 'warning',
-    details: 'Suspensión administrativa a "Logística & Distribución Rápida" por vencimiento de documentación',
-    metadata: {
-      companyName: 'Logística & Distribución Rápida',
-      previousStatus: 'Active',
-      newStatus: 'Suspended',
-      reason: 'Póliza de seguro SOAT vencida'
-    }
-  },
-  {
-    id: 'aud-005',
-    occurredAtUtc: '2026-09-04 08:00:00',
-    action: 'SYSTEM_BACKUP_COMPLETED',
-    actionLabel: 'Copia de Seguridad del Sistema',
-    entityType: 'System',
-    entityId: 'sys-bk-491',
-    actorEmail: 'system-worker@nexofleet.internal',
-    actorRole: 'System',
-    ipAddress: '127.0.0.1 (Localhost)',
-    severity: 'info',
-    details: 'Snapshot automatizado de base de datos PostgreSQL 17 completado (Tamaño: 24.5 MB)',
-    metadata: {
-      backupType: 'FullDatabaseSnapshot',
-      database: 'nexofleet',
-      durationMs: 1420
-    }
-  },
-  {
-    id: 'aud-006',
-    occurredAtUtc: '2026-09-03 19:40:12',
-    action: 'COMPANY_UPDATED',
-    actionLabel: 'Actualización de Perfil',
-    entityType: 'Company',
-    entityId: 'c8f42019-3f0e-4340-9a2c-90b58e7ad100',
-    actorEmail: 'admin@nexofleet.test',
-    actorRole: 'SuperAdmin',
-    ipAddress: '192.168.1.100 (Lima, PE)',
-    severity: 'info',
-    details: 'Actualización de teléfono corporativo y dirección legal de la empresa',
-    metadata: {
-      oldPhone: '+51 987000111',
-      newPhone: '+51 987654321',
-      updatedField: 'Phone, Address'
-    }
-  }
-]
+interface AuditStatsResponse {
+  totalEvents: number
+  companyOperations: number
+  securityEvents: number
+  alerts: number
+}
 
-const logs = ref<AuditEvent[]>([])
+// Variables reactivas
+const logs = ref<AuditLogResponse[]>([])
+const stats = ref<AuditStatsResponse>({
+  totalEvents: 0,
+  companyOperations: 0,
+  securityEvents: 0,
+  alerts: 0
+})
 const loading = ref(true)
+const loadingStats = ref(true)
 const searchQuery = ref('')
 const selectedEntityType = ref('ALL')
 const selectedSeverity = ref('ALL')
 
-// Selected log for detail modal
-const selectedLog = ref<AuditEvent | null>(null)
+// Variables para el modal
+const selectedLog = ref<AuditLogResponse | null>(null)
 const isDetailOpen = ref(false)
 
+// Funciones para UI format
+function getSeverityBadge(severityStr: string): 'info' | 'warning' | 'danger' | 'success' {
+  const s = severityStr.toLowerCase()
+  if (s === 'success') return 'success'
+  if (s === 'warning') return 'warning'
+  if (s === 'critical' || s === 'danger') return 'danger'
+  return 'info'
+}
+
+function getSeverityBadgeLabel(severityStr: string): string {
+  const s = severityStr.toLowerCase()
+  if (s === 'success') return 'Éxito'
+  if (s === 'warning') return 'Aviso'
+  if (s === 'critical' || s === 'danger') return 'Crítico'
+  return 'Info'
+}
+
+function formatActionLabel(action: string): string {
+  const mapping: Record<string, string> = {
+    'COMPANY_REGISTERED': 'Registro de Empresa',
+    'ADMIN_PROVISIONED': 'Creación de Administrador',
+    'SECURITY_LOGIN_FAILED': 'Fallo de Autenticación',
+    'COMPANY_SUSPENDED': 'Suspensión de Empresa',
+    'SYSTEM_BACKUP_COMPLETED': 'Copia de Seguridad del Sistema',
+    'COMPANY_UPDATED': 'Actualización de Perfil'
+  }
+  return mapping[action] || action
+}
+
+function parseData(jsonStr?: string): any {
+  if (!jsonStr) return {}
+  try {
+    return JSON.parse(jsonStr)
+  } catch {
+    return { raw: jsonStr }
+  }
+}
+
+function formatUtcTime(utcDate: string): string {
+  try {
+    const d = new Date(utcDate)
+    return d.toLocaleString('es-PE', { hour12: false })
+  } catch {
+    return utcDate
+  }
+}
+
+// Lógica de datos
 async function fetchLogs() {
   loading.value = true
   try {
-    const res = await api.get<any[]>('/v1/audit-logs')
-    if (res && res.length > 0) {
-      logs.value = res
-    } else {
-      logs.value = mockAuditLogs
-    }
-  } catch {
-    logs.value = mockAuditLogs
+    const query = new URLSearchParams()
+    if (searchQuery.value) query.append('search', searchQuery.value)
+    if (selectedEntityType.value !== 'ALL') query.append('entityType', selectedEntityType.value)
+    
+    // Mapear UI severity al backend severity
+    let backendSeverity = selectedSeverity.value
+    if (backendSeverity === 'danger') backendSeverity = 'Critical'
+    else if (backendSeverity !== 'ALL') backendSeverity = backendSeverity.charAt(0).toUpperCase() + backendSeverity.slice(1)
+    
+    if (backendSeverity !== 'ALL') query.append('severity', backendSeverity)
+
+    const res = await api.get<AuditLogResponse[]>(`/v1/audit-logs?${query.toString()}`)
+    logs.value = res || []
+  } catch (e) {
+    console.error(e)
+    logs.value = []
   } finally {
     loading.value = false
   }
 }
 
-const filteredLogs = computed(() => {
-  return logs.value.filter(log => {
-    const matchesSearch =
-      searchQuery.value.trim() === '' ||
-      log.action.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      log.actionLabel.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      log.actorEmail.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      log.ipAddress.toLowerCase().includes(searchQuery.value.toLowerCase())
+async function fetchStats() {
+  loadingStats.value = true
+  try {
+    const res = await api.get<AuditStatsResponse>('/v1/audit-logs/stats')
+    if (res) stats.value = res
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingStats.value = false
+  }
+}
 
-    const matchesEntity =
-      selectedEntityType.value === 'ALL' || log.entityType === selectedEntityType.value
-
-    const matchesSeverity =
-      selectedSeverity.value === 'ALL' || log.severity === selectedSeverity.value
-
-    return matchesSearch && matchesEntity && matchesSeverity
-  })
-})
-
-function viewLogDetails(log: AuditEvent) {
+function viewLogDetails(log: AuditLogResponse) {
   selectedLog.value = log
   isDetailOpen.value = true
 }
 
+// Watchers y lifecycle
+let searchTimeout: any
+watch(searchQuery, () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    fetchLogs()
+  }, 500)
+})
+
+watch([selectedEntityType, selectedSeverity], () => {
+  fetchLogs()
+})
+
 onMounted(() => {
   fetchLogs()
+  fetchStats()
 })
 </script>
 
@@ -246,7 +207,10 @@ onMounted(() => {
           <span class="text-xs font-medium text-slate-400">Total Eventos Registrados</span>
           <FileCheck2 class="w-4 h-4 text-purple-400" />
         </div>
-        <p class="text-2xl font-black text-white mt-1">{{ logs.length }}</p>
+        <p class="text-2xl font-black text-white mt-1">
+          <span v-if="loadingStats" class="text-slate-600">--</span>
+          <span v-else>{{ stats.totalEvents }}</span>
+        </p>
         <p class="text-[11px] text-purple-300/80 mt-0.5">Historial íntegro</p>
       </div>
 
@@ -256,7 +220,8 @@ onMounted(() => {
           <Building2 class="w-4 h-4 text-brand-400" />
         </div>
         <p class="text-2xl font-black text-white mt-1">
-          {{ logs.filter(l => l.entityType === 'Company').length }}
+          <span v-if="loadingStats" class="text-slate-600">--</span>
+          <span v-else>{{ stats.companyOperations }}</span>
         </p>
         <p class="text-[11px] text-slate-400 mt-0.5">Altas, bajas y perfiles</p>
       </div>
@@ -267,7 +232,8 @@ onMounted(() => {
           <ShieldCheck class="w-4 h-4 text-emerald-400" />
         </div>
         <p class="text-2xl font-black text-white mt-1">
-          {{ logs.filter(l => l.entityType === 'Security' || l.action.includes('LOGIN')).length }}
+          <span v-if="loadingStats" class="text-slate-600">--</span>
+          <span v-else>{{ stats.securityEvents }}</span>
         </p>
         <p class="text-[11px] text-emerald-400/80 mt-0.5">Accesos y validaciones</p>
       </div>
@@ -278,7 +244,8 @@ onMounted(() => {
           <AlertTriangle class="w-4 h-4 text-amber-400" />
         </div>
         <p class="text-2xl font-black text-white mt-1">
-          {{ logs.filter(l => l.severity === 'warning' || l.severity === 'danger').length }}
+          <span v-if="loadingStats" class="text-slate-600">--</span>
+          <span v-else>{{ stats.alerts }}</span>
         </p>
         <p class="text-[11px] text-amber-300/80 mt-0.5">Eventos a monitorear</p>
       </div>
@@ -342,11 +309,11 @@ onMounted(() => {
             <tr v-if="loading" class="text-center py-12 text-slate-400">
               <td colspan="7" class="py-12 text-slate-500 font-medium">Cargando registros de auditoría...</td>
             </tr>
-            <tr v-else-if="filteredLogs.length === 0" class="text-center py-12">
+            <tr v-else-if="logs.length === 0" class="text-center py-12">
               <td colspan="7" class="py-12 text-slate-500 font-medium">No se encontraron eventos coincidentes.</td>
             </tr>
             <tr
-              v-for="l in filteredLogs"
+              v-for="l in logs"
               :key="l.id"
               class="hover:bg-slate-800/30 transition-colors group cursor-pointer"
               @click="viewLogDetails(l)"
@@ -354,44 +321,20 @@ onMounted(() => {
               <td class="px-6 py-4 text-slate-300 font-mono text-[11px] whitespace-nowrap">
                 <div class="flex items-center gap-1.5">
                   <Clock class="w-3.5 h-3.5 text-slate-500" />
-                  <span>{{ l.occurredAtUtc }}</span>
+                  <span>{{ formatUtcTime(l.occurredAtUtc) }}</span>
                 </div>
               </td>
               <td class="px-6 py-4">
                 <BaseBadge
-                  v-if="l.severity === 'success'"
-                  variant="success"
+                  :variant="getSeverityBadge(l.severity)"
                   size="sm"
-                  dot
+                  :dot="l.severity === 'Success' || l.severity === 'Warning' || l.severity === 'Critical'"
                 >
-                  Éxito
-                </BaseBadge>
-                <BaseBadge
-                  v-else-if="l.severity === 'warning'"
-                  variant="warning"
-                  size="sm"
-                  dot
-                >
-                  Aviso
-                </BaseBadge>
-                <BaseBadge
-                  v-else-if="l.severity === 'danger'"
-                  variant="danger"
-                  size="sm"
-                  dot
-                >
-                  Crítico
-                </BaseBadge>
-                <BaseBadge
-                  v-else
-                  variant="neutral"
-                  size="sm"
-                >
-                  Info
+                  {{ getSeverityBadgeLabel(l.severity) }}
                 </BaseBadge>
               </td>
               <td class="px-6 py-4">
-                <div class="font-bold text-white">{{ l.actionLabel }}</div>
+                <div class="font-bold text-white">{{ formatActionLabel(l.action) }}</div>
                 <div class="font-mono text-[10px] text-purple-400">{{ l.action }}</div>
               </td>
               <td class="px-6 py-4">
@@ -424,7 +367,7 @@ onMounted(() => {
     <!-- Detail & Payload Inspector Modal -->
     <BaseModal
       :is-open="isDetailOpen"
-      :title="'Detalle de Evento: ' + (selectedLog?.actionLabel || '')"
+      :title="'Detalle de Evento: ' + (selectedLog ? formatActionLabel(selectedLog.action) : '')"
       @close="isDetailOpen = false"
     >
       <div v-if="selectedLog" class="space-y-4 text-xs">
@@ -447,16 +390,9 @@ onMounted(() => {
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">Descripción del Evento</label>
-          <div class="p-3 rounded-xl bg-slate-950/50 border border-slate-800 text-slate-200 leading-relaxed">
-            {{ selectedLog.details }}
-          </div>
-        </div>
-
-        <div v-if="selectedLog.metadata">
+        <div v-if="selectedLog.data">
           <label class="block text-xs font-semibold text-slate-400 mb-1">Payload / Metadatos del Cambio (JSON)</label>
-          <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-purple-300 overflow-x-auto">{{ JSON.stringify(selectedLog.metadata, null, 2) }}</pre>
+          <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-purple-300 overflow-x-auto">{{ JSON.stringify(parseData(selectedLog.data), null, 2) }}</pre>
         </div>
 
         <div class="pt-2 flex justify-end">
@@ -468,4 +404,3 @@ onMounted(() => {
     </BaseModal>
   </div>
 </template>
-

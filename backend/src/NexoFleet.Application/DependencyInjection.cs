@@ -19,6 +19,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddValidatorsFromAssemblyContaining(typeof(DependencyInjection));
+        services.AddMediatR(config => config.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
+        
         services.AddScoped<AuthService>();
         services.AddScoped<CompanyService>();
         services.AddScoped<ClientService>();

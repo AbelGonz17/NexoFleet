@@ -15,6 +15,9 @@ public sealed class AuditLog : AggregateRoot
         string? data,
         string? ipAddress,
         string? userAgent,
+        AuditLogSeverity severity,
+        string? actorEmail,
+        string? actorRole,
         DateTimeOffset occurredAtUtc) : base(id)
     {
         CompanyId = companyId;
@@ -25,6 +28,9 @@ public sealed class AuditLog : AggregateRoot
         Data = data;
         IpAddress = ipAddress;
         UserAgent = userAgent;
+        Severity = severity;
+        ActorEmail = actorEmail;
+        ActorRole = actorRole;
         OccurredAtUtc = occurredAtUtc;
     }
 
@@ -38,6 +44,9 @@ public sealed class AuditLog : AggregateRoot
     public string? Data { get; private set; }
     public string? IpAddress { get; private set; }
     public string? UserAgent { get; private set; }
+    public AuditLogSeverity Severity { get; private set; }
+    public string? ActorEmail { get; private set; }
+    public string? ActorRole { get; private set; }
     public DateTimeOffset OccurredAtUtc { get; private set; }
 
     public static Result<AuditLog> Create(
@@ -50,6 +59,9 @@ public sealed class AuditLog : AggregateRoot
         string? data,
         string? ipAddress,
         string? userAgent,
+        AuditLogSeverity severity,
+        string? actorEmail,
+        string? actorRole,
         DateTimeOffset occurredAtUtc)
     {
         if (id == Guid.Empty) return Result<AuditLog>.Failure(AuditLogErrors.InvalidId);
@@ -66,7 +78,7 @@ public sealed class AuditLog : AggregateRoot
 
         return Result<AuditLog>.Success(new AuditLog(
             id, companyId, actorUserId, Normalize(action), Normalize(entityType), entityId,
-            NormalizeOptional(data), NormalizeOptional(ipAddress), NormalizeOptional(userAgent), occurredAtUtc));
+            NormalizeOptional(data), NormalizeOptional(ipAddress), NormalizeOptional(userAgent), severity, NormalizeOptional(actorEmail), NormalizeOptional(actorRole), occurredAtUtc));
     }
 
     private static string Normalize(string value) => value.Trim();

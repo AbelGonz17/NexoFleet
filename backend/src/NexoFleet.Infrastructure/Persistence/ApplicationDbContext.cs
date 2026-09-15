@@ -48,5 +48,13 @@ public sealed class ApplicationDbContext(
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         builder.UseSnakeCaseNames();
+
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (typeof(NexoFleet.Domain.Common.Entity).IsAssignableFrom(entityType.ClrType))
+            {
+                builder.Entity(entityType.ClrType).Property("Id").ValueGeneratedNever();
+            }
+        }
     }
 }

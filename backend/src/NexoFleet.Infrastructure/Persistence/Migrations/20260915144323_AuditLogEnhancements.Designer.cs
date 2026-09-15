@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NexoFleet.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NexoFleet.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915144323_AuditLogEnhancements")]
+    partial class AuditLogEnhancements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -188,6 +191,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Auditing.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -268,6 +272,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Clients.Client", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -342,6 +347,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Companies.Company", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -413,6 +419,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Employees.Employee", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -511,6 +518,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Notifications.Notification", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -589,6 +597,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Payments.PaymentComment", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -632,6 +641,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Payments.PaymentItem", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -696,6 +706,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Payments.PaymentPeriod", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -753,6 +764,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Payments.PaymentReport", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -824,6 +836,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Payments.PaymentReportFile", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -884,6 +897,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.RouteSchedules.RouteSchedule", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -962,6 +976,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.RouteSchedules.RouteScheduleAssignment", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1043,6 +1058,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Routes.Route", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1163,6 +1179,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Routes.RouteStop", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1213,6 +1230,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Trips.Trip", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1374,6 +1392,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Trips.TripAssignment", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1431,6 +1450,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Trips.TripFile", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1491,6 +1511,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Trips.TripIncident", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1544,6 +1565,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Trips.TripReview", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1592,6 +1614,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Trips.TripStatusHistory", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1638,6 +1661,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Vehicles.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -1746,6 +1770,7 @@ namespace NexoFleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("NexoFleet.Domain.Vehicles.VehicleDocument", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 

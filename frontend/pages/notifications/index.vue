@@ -30,8 +30,8 @@ interface RichNotification {
   id: string
   title: string
   message: string
-  status: 'Unread' | 'Read'
-  category: 'Company' | 'Security' | 'System' | 'Fleet'
+  status: 'Unread' | 'Read' | 'Archived'
+  category: string
   severity: 'info' | 'warning' | 'danger' | 'success'
   createdAtUtc: string
   actionUrl?: string
@@ -39,79 +39,71 @@ interface RichNotification {
 }
 
 const api = useApi()
-const permissions = usePermissions()
-
-const mockNotifications: RichNotification[] = [
-  {
-    id: 'notif-1',
-    title: 'Nueva Empresa Registrada',
-    message: 'La empresa "Expreso San Martín E.I.R.L." ha sido creada exitosamente por el Super Administrador y está lista para asignación de flota.',
-    status: 'Unread',
-    category: 'Company',
-    severity: 'success',
-    createdAtUtc: 'Hace 15 minutos',
-    actionUrl: '/companies',
-    actionLabel: 'Ver Empresas'
-  },
-  {
-    id: 'notif-2',
-    title: 'Alerta de Seguridad: Inicio de Sesión',
-    message: 'Se registraron 3 intentos fallidos de autenticación desde la dirección IP 190.234.12.88 (Arequipa, PE). La cuenta no fue bloqueada pero se encuentra bajo monitoreo.',
-    status: 'Unread',
-    category: 'Security',
-    severity: 'danger',
-    createdAtUtc: 'Hace 1 hora',
-    actionUrl: '/audit-logs',
-    actionLabel: 'Inspeccionar Auditoría'
-  },
-  {
-    id: 'notif-3',
-    title: 'Mantenimiento Preventivo del Sistema',
-    message: 'La copia de seguridad automática de base de datos PostgreSQL 17 y la sincronización de índices finalizaron sin advertencias (24.5 MB respaldados).',
-    status: 'Read',
-    category: 'System',
-    severity: 'info',
-    createdAtUtc: 'Hoy 08:00 UTC',
-    actionUrl: '/audit-logs',
-    actionLabel: 'Ver Detalle'
-  },
-  {
-    id: 'notif-4',
-    title: 'Empresa Suspendida por Documentación',
-    message: 'La empresa "Logística & Distribución Rápida" ha cambiado su estado a Suspendida por vencimiento de póliza SOAT y licencias vehiculares.',
-    status: 'Read',
-    category: 'Company',
-    severity: 'warning',
-    createdAtUtc: 'Ayer 18:40 UTC',
-    actionUrl: '/companies',
-    actionLabel: 'Revisar Estado'
-  }
-]
 
 const notifications = ref<RichNotification[]>([])
 const loading = ref(true)
 const activeCategory = ref<string>('ALL')
 const onlyUnread = ref(false)
 
+function getSeverity(type: string): 'info' | 'warning' | 'danger' | 'success' {
+  if (type === 'Security') return 'danger'
+  if (type === 'Company') return 'warning'
+  return 'info'
+}
+
+function getActionUrl(type?: string | null): string | undefined {
+  if (type === 'Company') return '/companies'
+  if (type === 'Security' || type === 'System') return '/audit-logs'
+  return undefined
+}
+
+function getActionLabel(type?: string | null): string | undefined {
+  if (type === 'Company') return 'Revisar Estado'
+  if (type === 'Security' || type === 'System') return 'Ver Detalle'
+  return undefined
+}
+
+function formatTime(utcDate: string): string {
+  try {
+    const date = new Date(utcDate)
+    const diffMs = Date.now() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins < 60) return `Hace ${diffMins} minutos`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `Hace ${diffHours} horas`
+    const diffDays = Math.floor(diffHours / 24)
+    return `Hace ${diffDays} días`
+  } catch {
+    return utcDate
+  }
+}
+
 async function fetchNotifications() {
   loading.value = true
   try {
-    const res = await api.get<any[]>('/v1/notifications/my')
+    const query = new URLSearchParams()
+    if (onlyUnread.value) query.append('unreadOnly', 'true')
+    if (activeCategory.value !== 'ALL') query.append('type', activeCategory.value)
+
+    const res = await api.get<NotificationResponse[]>(`/v1/notifications/my?${query.toString()}`)
     if (res && res.length > 0) {
       notifications.value = res.map(n => ({
         id: n.id,
         title: n.title,
         message: n.message,
         status: n.status,
-        category: 'System',
-        severity: 'info',
-        createdAtUtc: n.createdAtUtc
+        category: n.type,
+        severity: getSeverity(n.type),
+        createdAtUtc: formatTime(n.createdAtUtc),
+        actionUrl: getActionUrl(n.relatedEntityType),
+        actionLabel: getActionLabel(n.relatedEntityType)
       }))
     } else {
-      notifications.value = mockNotifications
+      notifications.value = []
     }
-  } catch {
-    notifications.value = mockNotifications
+  } catch (e) {
+    console.error(e)
+    notifications.value = []
   } finally {
     loading.value = false
   }
@@ -120,27 +112,31 @@ async function fetchNotifications() {
 async function markAsRead(id: string) {
   try {
     await api.post(`/v1/notifications/${id}/read`)
-  } catch {
-    // Handled by useApi or fallback mock
+    const target = notifications.value.find(n => n.id === id)
+    if (target) target.status = 'Read'
+  } catch (e) {
+    console.error(e)
   }
-  const target = notifications.value.find(n => n.id === id)
-  if (target) target.status = 'Read'
 }
 
-function markAllAsRead() {
-  notifications.value.forEach(n => {
-    n.status = 'Read'
-  })
+async function markAllAsRead() {
+  try {
+    await api.post('/v1/notifications/read-all')
+    notifications.value.forEach(n => {
+      n.status = 'Read'
+    })
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 const unreadCount = computed(() => notifications.value.filter(n => n.status === 'Unread').length)
 
-const filteredNotifications = computed(() => {
-  return notifications.value.filter(n => {
-    const matchCategory = activeCategory.value === 'ALL' || n.category === activeCategory.value
-    const matchRead = !onlyUnread.value || n.status === 'Unread'
-    return matchCategory && matchRead
-  })
+// Since we are fetching from backend based on filters, we don't need local filtering
+const filteredNotifications = computed(() => notifications.value)
+
+watch([activeCategory, onlyUnread], () => {
+  fetchNotifications()
 })
 
 onMounted(() => {

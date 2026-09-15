@@ -12,6 +12,9 @@ public sealed record AuditLogResponse(
     string? Data,
     string? IpAddress,
     string? UserAgent,
+    string Severity,
+    string? ActorEmail,
+    string? ActorRole,
     DateTimeOffset OccurredAtUtc)
 {
     public static AuditLogResponse FromDomain(AuditLog log) =>
@@ -25,13 +28,25 @@ public sealed record AuditLogResponse(
             log.Data,
             log.IpAddress,
             log.UserAgent,
+            log.Severity.ToString(),
+            log.ActorEmail,
+            log.ActorRole,
             log.OccurredAtUtc);
 }
 
 public sealed record CreateAuditLogRequest(
     string Action,
     string EntityType,
+    AuditLogSeverity Severity = AuditLogSeverity.Info,
     Guid? EntityId = null,
     string? Data = null,
     string? IpAddress = null,
-    string? UserAgent = null);
+    string? UserAgent = null,
+    string? ActorEmail = null,
+    string? ActorRole = null);
+
+public sealed record AuditLogStatsResponse(
+    int TotalEvents,
+    int CompanyOperations,
+    int SecurityEvents,
+    int Alerts);

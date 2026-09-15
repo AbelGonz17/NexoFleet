@@ -14,8 +14,18 @@ public sealed class AuditLogsController(AuditLogService auditLogService) : Contr
     /// <summary>Lista los registros de auditoría de la empresa o sistema.</summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<AuditLogResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AuditLogResponse>>> List(CancellationToken cancellationToken) =>
-        this.ToActionResult(await auditLogService.ListAsync(cancellationToken));
+    public async Task<ActionResult<IReadOnlyList<AuditLogResponse>>> Search(
+        [FromQuery] string? search = null,
+        [FromQuery] string? entityType = null,
+        [FromQuery] string? severity = null,
+        CancellationToken cancellationToken = default) =>
+        this.ToActionResult(await auditLogService.SearchAsync(search, entityType, severity, cancellationToken));
+
+    /// <summary>Obtiene estadísticas de auditoría global.</summary>
+    [HttpGet("stats")]
+    [ProducesResponseType<AuditLogStatsResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<AuditLogStatsResponse>> GetStats(CancellationToken cancellationToken) =>
+        this.ToActionResult(await auditLogService.GetStatsAsync(cancellationToken));
 
     /// <summary>Obtiene un registro de auditoría por su identificador.</summary>
     /// <param name="id">Identificador del log de auditoría.</param>

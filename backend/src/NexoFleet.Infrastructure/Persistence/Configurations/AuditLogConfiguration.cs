@@ -17,6 +17,9 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(log => log.Data).HasColumnType("jsonb").HasMaxLength(AuditLogErrors.DataMaxLength);
         builder.Property(log => log.IpAddress).HasMaxLength(AuditLogErrors.IpAddressMaxLength);
         builder.Property(log => log.UserAgent).HasMaxLength(AuditLogErrors.UserAgentMaxLength);
+        builder.Property(log => log.Severity).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(log => log.ActorEmail).HasMaxLength(256);
+        builder.Property(log => log.ActorRole).HasMaxLength(50);
         builder.Property(log => log.OccurredAtUtc).HasColumnType("timestamp with time zone").IsRequired();
         builder.HasIndex(log => new { log.CompanyId, log.OccurredAtUtc });
         builder.HasIndex(log => new { log.EntityType, log.EntityId, log.OccurredAtUtc });
